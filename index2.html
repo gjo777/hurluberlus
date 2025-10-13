@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeu des Répliques</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
+  select, button { font-size: 1em; margin: 4px; padding: 6px 10px; }
+  #question, #reponse, #didascalie, #repliqueCounter {
+    margin: 10px 0;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+  }
+  #reponse { display: none; background: #e8f7ff; }
+  .justHighlight { background: #b0f0b0 !important; }
+</style>
+</head>
+<body>
+
+<h2>🎭 Jeu des Répliques</h2>
+
+<label for="personnageSelect">Personnage :</label>
+<select id="personnageSelect"></select>
+<div id="repliqueCounter"></div>
+
+<div id="didascalie"></div>
+<div id="question"></div>
+<div id="reponse"></div>
+
+<div>
+  <button id="voirBtn">👁️ Voir</button>
+  <button id="cacherBtn">🙈 Cacher</button>
+  <button id="justeBtn">✅ Juste</button>
+  <button id="questionBtn">🎲 Nouvelle question</button>
+  <button id="resetBtn">♻️ Réinitialiser</button>
+</div>
+
+<script>
+// Liste des personnages
+let personnages = ["JACQUES","LUCIE","JEAN","MICHEL","QQ","CORINNE","EMMANUELLE"];
+let aTabTexte = [];
+let aTabTexteBck = [];
+let personnage = "JACQUES";
+let iRow = null;
+
+// === Texte complet intégré directement ===
+const texteComplet = `
+Acte|Scène|Page|Personnage|Texte|Didascalie|Acte|Scène|Page|Acte|Scène|Page|
+Ac1|Sc1|P5|JACQUES|Mais qu’est-ce que j’ai fait pour mériter ça !  Je n’arrive même plus à l’ouvrir.  Peut-être qu’avec du collyre…|gémissant, il tente d’ouvrir son œil face à un miroir Il monte les escaliers vers la mezzanine |1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Jacques ? T’es là, mon Jacques ?  Arrête… On a passé l’âge de jouer à cache-cache.|off, de l’extérieur  Elle entre, cherche |1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|T’es contente de toi, Lucie ?|désignant son œil fermé|1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Enfin, chéri, dans tous les mariages, on jette du riz aux mariés. Ça porte bonheur.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Là, t’as bien visé… c’est le bonheur total !|Jacques ferme la porte et descend côté jardin|1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Et c’est pour ça que t’as quitté la noce en hurlant ? Ce que tu es douillet ! Allez, viens, ta sœur va jeter un œil sur ton bobo.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Oh non ! Surtout, tu ne jettes plus rien.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Mais si, c’est de ma faute… Donne-moi une chance de me rattraper.|sortant de son sac un paquet de riz |1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Dis donc, t’étais armée. Je ne risquais pas d’y échapper !||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Ah… voilà un mouchoir.  Assieds-toi et ouvre ton œil.  L’autre, voyons !|Elle sort un mouchoir qu’elle tortillonne Jacques ouvre grand son œil sain |1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Je peux pas, le riz fait ventouse.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Ne dis pas n’importe quoi, c’est du riz incollable. Allez, Jacquot, c’est un mauvais moment à passer.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|C’est exactement ce que je me suis dit à l’église.|Jacques se lève + part côté cour|1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Ah non ! Tu ne vas pas remettre ton mariage sur le tapis. De toute façon, c’est trop tard.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Je suis marié depuis quoi ? Dix minutes ?  Et me voilà déjà infirme ! Non, c’est un signe.|Désignant son œil fermé |1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|LUCIE|Jacques, Corinne est une femme parfaite.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P5|JACQUES|Oui. Pour un autre.||1|1|5|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Mais vous vivez ensemble depuis cinq ans !||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Raison de plus. Lucie, tu me connais, je suis incapable d’être l’homme d’une seule femme.  C’est au-dessus de mes forces.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|D’où l’intelligence de Corinne. Elle a toujours su fermer l’œil.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Eh ben, à nous deux, quel beau couple ! Deux cyclopes… Ah ! ça brûle !||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Mais ouvre ! Plus t’attends, plus ton grain de riz va gonfler.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Oh non !! Il ne manquait plus que ça !| se dégageant, repart côté jardin|1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Chéri, s’il te plaît, tes amis t’attendent…||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Parce que t’appelles ça des amis ? Quand le curé m’a demandé « Jurez-vous fidélité à  votre femme ? », l’église entière a éclaté de rire.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Forcément, ils connaissaient la bête !  Quelle plaie, ces téléphones !  Hier matin, j’étais à un enterrement, il y a un portable qui a sonné à l’intérieur du cercueil.|Sonnerie portable |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Mais tu vas te taire, oui ? Allô ?||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|C’était le portable de la grand-mère. Ils avaient oublié de le lui retirer.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Mais tais-toi, j’entends rien. Allô ?|déplace gentiment côté cour, cherchant du réseau|1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Si la pauvre femme dans son cercueil avait répondu, t’imagines la famille en train de crier  : « Trop tard, mémé, faut raccrocher ! »||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Ah ! ça y est, là j’ai de du réseau Allô ?  Tu m’appelles d’où, là ?|regardant l’écran de son portable   Au téléphone |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|« C’est mémé, je suis en enfer… Ils sont dingues de chauffer autant ! »||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Mais tu vas te taire, oui !  Non ! Maintenant ?  Ah !!!  Quoi ?… Mais si, je suis  content. Quand je suis content, je fais toujours…  « Ah !!! »|Au téléphone Il ouvre grand les yeux   Lucie en profite avec son mouchoir Au téléphone  Imitant son cri |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Yesss ! Du premier coup, le grain de riz !|examinant son mouchoir |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|OK, je fais le nécessaire. |au téléphone, il raccroche|1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Un peu plus, il était trop cuit.|examinant le grain de riz |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Lucie, qu’est-ce que tu fais ?|voyant Lucie remettre le grain dans sa boîte |1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|Les parents disaient toujours : « Faut pas gâcher la nourriture. »||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Nos pauvres parents ! S’ils avaient pu prévoir ce que tu deviendrais, ils se seraient  certainement abstenus.||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|LUCIE|C’était la gentillesse du jour. Je préfère ne pas répondre, ça gâcherait la fête. Bon, on  retourne à l’auberge maintenant que je t’ai  dégrainderizé?||1|1|6|Ac|Sc|P|
+Ac1|Sc1|P6|JACQUES|Vas-y, je te rejoins. Je dois d’abord replier les chaises longues. Notre futur président de la  République va se pointer en hélicoptère.|Jacques se dirige côté cour|1|1|6|Ac|Sc|P|
+Ac1|Sc1|P7|LUCIE|C’était Michel?? Oh?! quelle bonne surprise?! Toi qui lui en voulais d’être absent à ton mariage…|Carillon "Ding-dong…"|1|1|7|Ac|Sc|P|
+Ac1|Sc1|P7|JACQUES|Ah non?! Ici, je ne veux voir personne de la noce. La maison, c’est sacré. Compris, Lucie??|Il sort par la porte-fenêtre du fond  Nouveau carillon |1|1|7|Ac|Sc|P|
+Ac1|Sc1|P7|LUCIE|Compris. Voilà, voilà?! Je n’ai que deux jambes… et elles ne sont pas en fin de garantie?! Bonjour, monsieur…|Elle ouvre la porte d’entrée et se trouve nez à nez avec Jean Tourille, en tenue de deuil  Seule note gaie sur lui : un paquet-cadeau  |1|1|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Bonjour, madame. Je souis bien chez Jacques Lasségué?? Le poublicitaire ?|lugubre |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Non?! Enfin si… mais la noce, c’est juste à cinquante mètres d’ici…||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN |La noce?? Mais quelle noce??||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Mais… celle de Jacques et Corinne. Pourquoi?? Vous n’étiez pas un invité??||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Ah?! parce qu’en plousse, il se marie??|prononçant certains «?u?» en «?ou?» |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Vous n’êtes pas un ami de Jacques??|décontenancée |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Pas  encore, madame. Il est chez loui??|avançant dans la pièce |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Oui, mais mon frère a déjà beaucoup de mal à assister à son propre mariage… Je lui dirai que vous êtes passé. Vous êtes monsieur…??||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Alors comme ça, il se marie?? Ça tombe bien, j’ai un cadeau pour loui.||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|C’est gentil, je lui remettrai de votre part. |Elle tente de s’en emparer |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Nooon?! Je préfère le loui donner en main propre?!||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Qu’est-ce qu’on aura rigolé à ce mariage?! Je vous en prie, asseyez-vous. Je peux savoir ce qui vous chagrine??||1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|JEAN|Laissez-moi, je n’ai aucune envie de vous parler?!|dans tous ses états |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P7|LUCIE|Charmant?! Très bien, je vais me faire une autoconversation. J’adore me surprendre en me posant des questions auxquelles je ne m’attends pas.   Et vous, madame, vous êtes heureuse??  Tiens, ça, on ne me l’a jamais demandé. Suis-je heureuse, madame?? Premièrement, pas madame. Mademoiselle?! Je ne me suis jamais mariée.  Oh?! mais vous avez de la marge, vous êtes encore très comestible?!   Monsieur, vous me faites rougir… Non, mon truc à moi, voyez, c’est la chanson. Si mon frère s’était occupé de moi, j’aurais pu devenir une star.  «?On dit que j’ai de jolies gambettes…?»  Pas possible?!|Faisant demande et réponses Coquette Chantant Admiratif |1|2|7|Ac|Sc|P|
+Ac1|Sc2|P8|LUCIE|Mais si, mais si… Là, voyez, l’air le plus approprié, ce serait… «?Y a d’la joie, bonjour bonjour les hirondelles, y a d’la joie…?»||1|2|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Même à Roissy, les pistes ne sont pas aussi bien balisées.|Jacques revient|1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Jacques Lasségué??  Mon pauvre ami?! Mon pauvre ami?!|sanglotant Tombant dans ses bras |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|C’est qui??|à Lucie   |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Tu le vois bien, c’est un boute-en-train.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Mon pauvre ami?!|tombant dans les bras de Jacques   |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Merci, monsieur. Je comprends votre émotion. Mais vous savez, le mariage… il y en a qui survivent. Vous êtes du côté de ma femme??||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Pas vraiment.  Tenez, c’est pour vous.|Il lui tendant son paquet |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Merci mais il ne fallait pas.  Allez, hop?! à la noce?!|Il pose le cadeau |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Enfin, vous pourriez au moins l’ouvrir.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Bien sûr, Jacques ouvre-le… que monsieur puisse repartir.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Bon, alors, à la demande générale…|sur le point de l’ouvrir |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Non?!!!|hurlant |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Mais qu’est-ce qui vous prend de crier comme ça??!|sursautant  |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Madame ne doit pas assister à l’ouvertoure dou paquet.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Après la conversation passionnante que nous avons eue?? C’est mesquin. C’est petit.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JEAN|Accordez-moi trois minutes et après je vous laisse.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Mais d’où il sort, cet énergumène ?  Hou ! Hou ! Lucie… Tu veux bien guetter l'arrivée de Michel|interloqué, à Lucie Lucie, intriguée, ne bouge pas  Jacques reste côté jardin|1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Ah oui?! L’hélicoptère…  Comme dans les grands aéroports, je vais le guider en agitant deux raquettes de ping-pong.|Allant chercher deux raquettes sur une étagère |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|C’est ça. Merci, Lucie...|pour la congédier  |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Et si c’était un paquet piégé??|Lucie, prenant Jacques à part |1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Mais qu’est-ce que tu vas imaginer??||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|LUCIE|Je t’assure, il a une tête de portrait-robot. Enfin, au cas où, n’oublie pas que je pratique les arts martiaux.||1|3|8|Ac|Sc|P|
+Ac1|Sc3|P8|JACQUES|Oui, oui, surtout le lancer de riz?!  Je sais, ma sœur est hors norme. La première fois ça surprend, mais avec le temps… on ne s’y habitue toujours pas. Bien, voyons votre cadeau…|Lucie se retourne en position de karaté et sort à reculons avec des cris de combat, "à la rigolade…"|1|3|8|Ac|Sc|P|
+Ac1|Sc4|P8|JEAN|Non?!!!|hurlant |1|4|8|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Ah?!!! Mais arrêtez de crier comme ça, vous me faites peur?!||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Regardez d’abord mon passeport.|tendant un passeport |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Vous savez, une carte de visite m’aurait suffi… Ah oui?! Sur la photo, c’est bien vous. Vous avez déjà cet air joyeux qui vous caractérise.||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Mon nom ne vous dit rien??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Tourille.  Tourille?? Vous… Vous êtes de la famille de…  Emmanuelle??|lisant Changeant de ton Basant la voix |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Oui, monsieur, par alliance. Je souis son mari.|d’une voix forte |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Chut?! Mais qu’est-ce que vous racontez?? Emmanuelle n’a jamais été mariée, voyons?!|étouffé |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Sincèrement, monsieur, j’ousse préféré.  Sour cette photo, c’est bien vous qui tenez ma femme par le cou??|lugubre Exhibant une photo |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Mais ne laissez pas traîner ça, voyons?! Alors, comme ça, vous êtes  vraiment le…??  Enchanté?!|prenant la photo Lui tendant la main |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Moi pas.||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Si je comprends bien, vous êtes venu spécialement aujourd’hui pour que je rompe avec votre femme, c’est ça?? On pourrait peut-être lui demander son avis, non??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Oooooh?!|plein de douleur |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Pardonnez-moi, je vous fais une scène de jalousie alors que mon alliance est encore tiède. Ecouté, à chaque jour sa peine. Aujourd’hui, vous me fichez la paix… et demain on en reparle calmement.||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Demain, monsieur, je serai de retour à Tahiti où j’habite depouis trois ans.|pathétique |1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Depuis trois ans??!||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Nous vivions séparés.||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Mais alors de quel droit vous venez polluer mon mariage??! Abrégeons. Emmanuelle vous a-t-elle dit qu’elle m’aimait??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Je savais qu’entre elle et moi, tout était foutou.||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Foutou??! Vous voulez dire foutu??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Oui, mais en Polynésie, les «?u?» se prononcent «?ou?». On en était où??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Je vous demandais si vous saviez que vous étiez cocou… cocu !||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Bien sûr que je le savais. Ça s’est passé ici??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JACQUES|Ici ou ailleurs, ça change quoi pour vous?? Quand on habite Tahiti, on n’est plus à cent kilomètres près.|Montrer pièce et sol (par exemple…)|1|4|9|Ac|Sc|P|
+Ac1|Sc4|P9|JEAN|Emmanuelle savait que vous alliez vous marier aujourd’hui??||1|4|9|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Non, je compte lui faire la surprise à son retour d’Hawaï. Mais on n’a pas idée, aussi, de poser en maillot de bain à longueur d’année ! Je serais vous, je lui interdirais d’être mannequin.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Vous auriez doù l’avertir avant son grand départ.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Pour lui gâcher son voyage ? Ça, c’est bien une réaction de mari ! Je lui ai toujours dit que j’étais marié. C’est avant que j’avais menti. Aujourd’hui, je ne fais que rétablir une vérité… anticipée.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Vous avez une singulière conception du couple, vous.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Pas du tout. À sa femme, on promet le mariage. À sa maîtresse, on promet le divorce.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Emmanouelle !|larmoyant |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Mais ce qu’il est agaçant avec son « Emmanouelle » ! « Emmanouelle, Emmanouelle… » Elle n’est pas là.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Si, nous sommes venous ensemble.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Quoi ? Elle est rentrée de voyage sans me prévenir ?  Mais vous êtes fou ! Elle est où ? Devant la grille ?|affolé, vite côté cour, ouvrant la porte, jetant un œil|1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Non, non.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Ah bon !|soulagé, refermant la porte |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Elle est là. |Il désigne le côté cour |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Dans le jardin ? Mais c’est pire, elle va tomber sur Lucie !|affolé, repart côté jardin|1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Non, monsieur… elle est là. |Il désigne le paquet-cadeau |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Comment ça, elle est là ? Vous voulez dire que le cadeau, c’est elle ?||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|En quelque sorte.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Alors là, je crains le pire.  C’est quoi ? Un cactus ?|s’approchant du paquet Il secoue le paquet, provoquant un malaise chez Jean |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Monsieur, c’est pire qu’un cactousse. Va falloir être fort.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Arrêtez les devinettes, voulez-vous. Ma femme m’attend.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Vous avez de la chance, car la mienne n’est plou.||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Comment ça, Néplou ?||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Elle est… morte !||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Quoi ?!|incrédule |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Emmanouelle ! Morte !||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Emmanuelle ? Mon Emmanuelle à moi ?|sonné |1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JEAN|Notre Emmanouelle à nous ! Foutoue !!!||1|4|10|Ac|Sc|P|
+Ac1|Sc4|P10|JACQUES|Monsieur, si c’est une blague, c’est d’un goût… Sortez !!!|Jacques pose le paquet sur la table|1|4|10|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Son hélicoptère s’est écrasé à Hawaï, près d’Honoloulou. C’est un télégramme qui m’a prévenou.  Je l’ai encore sur moi… Vous pouvez vérifier…|Cherchant |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Oh non ! Ce n’est pas vrai ! Mais ça s’est passé quand ?!|déchirant |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Il y a huit jours. Je sais, c’est incompréhensible. C’est si broutal…||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|C’est trop horrible…|effondré sur le canapé|1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Ma femme vous aimait, vous savez.||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Oh oui !||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Ouille ouille ouille ! Ce qu’elle vous aimait ! Vous l’avez rendoue heureuse…||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|J’ai fait ce que j’ai pou’… Mon pauvre Tourille, vous ne pouvez pas savoir comme elle était douce, sensuelle…|au bord des larmes |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Ah si ! J’en ai quand même un peu profité…||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Vous avez bien fait. Comme quoi ! Je suis totalement anéanti !||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Monsieur Lasségué, Emmanuelle vous avait-elle fait part de ses vœux testamentaires?||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Quelle question ! Comme si, à son âge, on pouvait prévoir…||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Eh bien si, joustement ! En fouillant ses papiers, j’ai trouvé son testament olographe.  Lisez vous-même, moi ça me fait trop mal. Vous reconnaissez son écritoure ?|Il sort une feuille |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Oui ! « Au cas où il m’arriverait malheur… » Emmanuelle ! « Je désire être incinérée… » Incinérée ?!|ému |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Eh oui, monsieur !||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Ça prend deux « n » ?||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Mais quelle importance ! Continuez…||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|C’est un supplice ! « Et que mes cendres soient dispersées là où j’ai été la plus heureuse avec Jacques : sur son lit. » Quoi ?!||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Voilà pourquoi je vous ai apporté son ourne founéraire : pour exécouter ses dernières volontés. |Il sort une urne du paquet, style shaker |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Non !!! Vous n’avez pas l’intention de…|Jacques passe côté jardin|1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Je sais, ça dépasse l’entendement. Elle est là-haut ?||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Oui, j’ai compris, elle est au ciel.||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Non, votre chambre… Elle est là-haut ?||1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JACQUES|Mais… c’est un cauchemar… non, vous n’allez pas… ce n’est pas légal… et puis c’est pas propre !|ne trouvant plus ses mots |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P11|JEAN|Ne vous inquiétez pas, monsieur, je m’occupe de tout. Plous vite ce sera terminé, plous vite nous serons soulagés.  Votre chambre, c’est celle-là ?|Il monte l’escalier, l’urne à la main |1|4|11|Ac|Sc|P|
+Ac1|Sc4|P12|JACQUES|Ah non ! Pas sur mon lit nuptial ! En plus, on vient de changer les draps ! Emmanuelle, tu restes avec moi. |se trahissant en bloquant l’entrée de sa chambre Il lui prend l’urne |1|4|12|Ac|Sc|P|
+Ac1|Sc4|P12|JEAN|Ma femme ! Rendez-moi ma femme !|Course-poursuite  Bruitage d’hélicoptère , paniqué Jacques lance l'urne à Jean|1|4|12|Ac|Sc|P|
+Ac1|Sc4|P12|JACQUES|Oh non ! Voilà Rolors ! Cachez-vous !... Non, pas dans ma chambre ! Entrez chez ma sœur.  Et redonnez-moi ça, enfin ! |Jean relance l'urne à Jacques qui cherche à la cacher …|1|4|12|Ac|Sc|P|
+Ac1|Sc4|P12|JEAN|Ma femme ! Il m’a pris ma femme !|hurlant |1|4|12|Ac|Sc|P|
+Ac1|Sc4|P12|JACQUES|Mais taisez-vous, je ne vais pas vous la voler !|Il ferme la porte de la chambre de Lucie et cherche un endroit pour cacher l’urne  Faute de mieux, il la dépose à l’intérieur du frigo  La porte-fenêtre court s’ouvre sur Lucie, cheveux hirsutes, le chapeau déchiqueté |1|4|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|J’ai fait le sémaphore, Michel s’est posé…  « Comme la plume au vent. » T’en fais une tête !|Chantant |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Tu t’es regardée ?!||1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Ah oui ! Je me suis approchée trop près de l’hélicoptère. Alors l’hélice… Il est parti, le pot de colle ?|désignant son chapeau déchiré |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Le quoi ?||1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Le type, là, en noir… on aurait dit… un… corbeau.||1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Oh ! Celui-là, quel oiseau de malheur ! |Regard sur le frigo |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Au fait, c’était quoi son cadeau ?|voyant le paquet vide |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Hein ? Euh… un cendrier.|Jacques prend le paquet vide et le pose sur la banquette|1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Quoi ? Il nous a fait tout ce bin’s pour un cendrier ?! Il est complètement chtarbé !  Oh !!! Le banquet ! Jacques on va se faire tuer. Je pars en éclaireuse pour les faire patienter. |Subitement Elle monte l’escalier |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Lucie, l’auberge, c’est par là !|désignant la porte jardin |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Tu permets que je me refasse un look ? Si je me pointe comme ça, tout le monde pensera que tu t’es vengé du grain de riz.|sur le point d’entrer dans sa chambre |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|JACQUES|Non !!! Pas dans ta chambre ! Va plutôt dans la salle de bains. Le miroir est moins haut. T’auras une meilleure vue d’ensemble sur les dégâts.|vexée Entrant dans la salle de bains |1|5|12|Ac|Sc|P|
+Ac1|Sc5|P12|LUCIE|Les dégâts ?! Pendant que tu y es, pourquoi pas les gravats ?!  Bon, allons voir l’état du chantier.||1|5|12|Ac|Sc|P|
+Ac1|Sc6|P12|MICHEL|Quel accueil ! Merci de t’être précipité.|glacial |1|6|12|Ac|Sc|P|
+Ac1|Sc6|P12|JACQUES|Pardon, Michel, aujourd’hui je manque à tous mes devoirs. Mais je t’en supplie, fais attention… tout peut aller si vite en hélicoptère !||1|6|12|Ac|Sc|P|
+Ac1|Sc6|P12|MICHEL  |Heureusement. Sinon je ne serai jamais ce soir en Vendée pour le coup d’envoi de ma campagne électorale.||1|6|12|Ac|Sc|P|
+Ac1|Sc6|P13|JACQUES|Comme si je l’ignorais ! À l’agence, on a bossé dessus comme des malades. Mais pourquoi au dernier moment t’as changé la date ? Mystère ! Du coup, ça tombe juste le jour de mon mariage.||1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|MICHEL|Au fait, toutes mes félicitations.|très sec |1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|JACQUES|Me féliciter de quoi ? D’avoir capitulé ?  Oh ! Mon Michel, si tu savais… Quelle journée atroce !|Regardant le réfrigérateur |1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|MICHEL|Corinne a eu un malaise ?|inquiet  |1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|JACQUES|Penses-tu ! Elle est increvable, celle-là !||1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|MICHEL|Bien. Passons aux choses sérieuses…||1|6|13|Ac|Sc|P|
+Ac1|Sc6|P13|JACQUES|Oui, oui, Lucie va t’accompagner à l’auberge. Je vous rejoins, le temps de … d’offrir un verre à ton pilote.  Lucie !!!|À la cantonade |1|6|13|Ac|Sc|P|
+Ac1|Sc7|P13|LUCIE|Chéri ?|sortant de la salle de bains, à moitié recoiffée |1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|MICHEL  |Jacques, je n’ai nullement l’intention d’assister au banquet. J’ai une très mauvaise  nouvelle à t’annoncer…||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|JACQUES|Ne te gêne pas. Aujourd’hui, je cumule… C’est quoi, ta mauvaise nouvelle ?||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|MICHEL  |Lucie, je ne dois pas assister à notre conversation…||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|LUCIE|Décidément, aujourd’hui, personne ne veut parler avec moi…||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|JACQUES|T’as entendu ce qu’il a dit ? Maintenant tu files à l’auberge et tu n'en bouges plus… Compris ?||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|LUCIE|Mais arrête de me pincer comme ça, je vais être couverte de bleus ! Et ça, c’est pas une couleur qui va avec tout. Attends !||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|JACQUES|Quoi encore ?||1|7|13|Ac|Sc|P|
+Ac1|Sc7|P13|LUCIE|Ma radiocassette. Ils n’ont pas de sono à l’auberge. Et ce soir, devine qui va mettre le feu ? « Lucie, la Di Jaille ! » Je vais nous animer une méga teuf. J’attaquerai bille en tête avec une chanson particulièrement bucolique…  Tata yoyo …  À plus, Michel !|Elle enclenche le magnétophone, sort en se tortillant par la porte jardin, poussée par Jacques qui sort avec elle |1|7|13|Ac|Sc|P|
+Ac1|Sc8|P13|MICHEL  |À beaucoup plus, Lucie !  Elle ne s’arrange pas, la sœur. Enfin, chacun sa croix !  Eh oui, toute une époque qui se termine ! Je me boirais bien un petit quelque chose…  Holà, tout ça est d’une tristesse !  Ah… ça, en revanche, ça m’a l’air plus gai. Corinne a toujours eu le coup de main pour les cocktails. |Il ouvre le frigo, sort l’urne-shaker, prend un verre et va pour ouvrir l’urne  mais retour de Jacques |1|8|13|Ac|Sc|P|
+Ac1|Sc8|P13|JACQUES|Aaaah ! Mais t’es fou ! Ne touche pas à ça ! |affolé Il lui arrache l’urne des mains |1|8|13|Ac|Sc|P|
+Ac1|Sc8|P13|MICHEL  |Pourquoi ?||1|8|13|Ac|Sc|P|
+Ac1|Sc8|P13|JACQUES|C’est… C’est mortel !||1|8|13|Ac|Sc|P|
+Ac1|Sc8|P13|MICHEL  |Mortel ?!||1|8|13|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Oui, c’est… du poison !||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Du poison ?||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Pour les taupes. Si tu savais comme elles m’empoisonnent l’existence… les taupes ! |Il remet l’urne dans le frigo |1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Non mais tu crois que c’est l’endroit idéal pour ranger ça ?||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Oh ! Pour elle, ça n’a plus d’importance maintenant ! |Il embrasse tendrement la porte du frigo |1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Pour qui ? Pour les taupes ?!||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Michel, c’est quoi ta mauvaise nouvelle ?||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |J’ai décidé de ne plus travailler avec toi…||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Quoi ?! Attends, coco, ta réussite, à qui tu la dois ?||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Ça, je ne suis pas près de l’oublier, tu me le rappelles à tout bout de champ.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Alors rappelle-toi que je t’ai créé de toutes pièces ! Quand je t’ai pris en main, tu végétais comme quinzième adjoint à la mairie de Bures-sur-Yvette.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Si tu cherches à me culpabiliser, c’est inutile…||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Je cherche les fautes professionnelles que j’aurais pu commettre. Tu m’en trouves une seule… et je m’incline.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Très bien. Puisque t’insistes… D’après mon état-major, tu véhicules une image de… people fétard!||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Dis donc, pour les leçons de morale… t’es très mal placé !||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Qu’est-ce que tu insinues ?||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Ta pauvre Clarisse, avec toutes les cornes que tu lui as plantées sur la tête… faut pas chercher plus loin l’origine de sa scoliose !||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Moi, c’est différent. Et si t’essayais de me faire chanter…||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Parce que tu m’en crois capable ?  Après tant d’années, en arriver là ! Mais pourquoi aujourd’hui tout se dérègle ?|Abattu |1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Jacques reconnais-le : c’est fou ce que tu traînes derrière toi comme cadavres.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Et ça, je peux même pas le nier !|regardant le frigo |1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |En tout cas, j’ai eu la délicatesse de venir te l’annoncer moi-même. Bon, tu m’excuses, je suis très minuté. Le meeting…||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Juste le jour de mon mariage, pour que je sois bien coincé ! Alors toi, dans le genre faux cul, t’es un maître étalon.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|MICHEL  |Tu m’as toujours dit :  Tu vois, j’applique tes conseils. Cela dit, je te garde toute mon amitié. Sans rancune ?|« On ne peut pas réussir en politique sans trahir  »Tendant la main   ignorant sa main |1|8|14|Ac|Sc|P|
+Ac1|Sc8|P14|JACQUES|Merci, la maison n’accepte pas les pourboires.||1|8|14|Ac|Sc|P|
+Ac1|Sc8|P15|MICHEL|Je comprends, c’est trop frais. Mais tu verras, l’amour-propre, ça cicatrise très bien. Au revoir, Jacques. |Il sort par la porte cour |1|8|15|Ac|Sc|P|
+Ac1|Sc8|P15|JACQUES|Au revoir ? Adieu, oui ! Je m’en ficherai, moi, du peuple fêtard ! Ces élections, c’était le couronnement de ma carrière ! Michel, attends-moi, je pars avec toi ! |il sort cour |1|8|15|Ac|Sc|P|
+Ac1|Sc9|P15|LUCIE|Jacques, la cousine de La Grande-Motte, elle est grave… Où sont passés ?  N’empêche qu’elle a raison, La Grande-Motte : mon vernis jure complètement avec mon rouge à lèvres. Qu’est-ce que j’ai comme reste comme vernis ?  Ah, ça pour celui-là !  Tiens, c’est quoi ce truc-là ? Sacrée Corinne ! Depuis le temps qu’elle en parlait, elle se l’est enfin concocté, son aphrodisiaque. Cela dit, le jour de son mariage, c’est de circonstance. Je l’emporte, ils boiront ça au moment de la jarretière. Ça pimentera la fête. Tchik, tchik, tchik, aie, aie, aie !|entrant par la porte jardin, regardant ses ongles, ouvre le frigo, voyant l’urne  Elle sort par le jardin, en secouant l’urne comme une maracas et retour de Jacques par la porte jardin|1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Ah ! Son hélico m’a foutu une poussière dans l’œil. Dans le même, en plus !|l’œil fermé … |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Il est parti ?|Jean sort de la chambre de Lucie|1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Oh non ! Le corbeau ! J’avais fini par l’oublier, celui-là ! Alors vous, l’oiseau de mauvais augure, disparaissez ! Ah !|sursautantRechignant l’œil  |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Vous avez oune saleté dans l’œil ? Laissez-moi regarder.||1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Ah non ! Moins je vous verrai, mieux je me porterai ! Allez-vous-en !||1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Je ne vois plou ma femme… Vous l’avez posée où ?|cherchant|1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Ah oui ! Elle est là, votre femme.  À côté du bac à légumes.|Ouvrant le frigo |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Monsieur, comme s’il fallait encore la refroidir !||1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Je ne supporte plus la vue de cet objet macabre…  Tenez, reprenez votre femme.|sortant une bouteille de lait sans la regarderLui tendant la bouteille |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Vous… Vous l’avez transvasée ?!|abasourdi|1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Mais qu’est-ce que vous racontez ? Allez, reprenez-la, je veux garder d’elle une autre image.|toujours sans regarder la bouteille|1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|Que voulez-vous que je fasse de ça ?  Demi-écrémé !|Lisant l’étiquette |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Oh ! La pauvre ! Ils n’ont fait le travail qu’à moitié !||1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JEAN|En plousse, la date de fraîcheur est périmée.|Voyant la bouteille |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P15|JACQUES|Parce que maintenant, ils mettent une date de fraîcheur ?!  Ah ! J’ai confondu avec… Un peu plus et vous repartiez avec ça Quelle horreur ! Si ça se trouve, c’est tout caillé à l’intérieur. Mais où est-elle passée ? Elle était encore là au moment des taupes…|Remettant la bouteille dans le frigo |1|9|15|Ac|Sc|P|
+Ac1|Sc9|P16|JEAN|Des taupes ? Mais quelles taupes ? Monsieur, je veux ma femme, tout de suite !||1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JACQUES|Mais puisque je vous dis qu’elle a disparu ! Vous voulez qu’on fasse l’inventaire du frigo ?  Ce n’est pas elle ?|excédé Exhibant une boîte de carottes |1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JEAN|Non mais dites donc...||1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JACQUES|Ne répondez pas trop vite. Regardez bien. Si ça se trouve, c’est elle… déjà réincarnée.  Ah ! ça va mieux, la poussière est partie !|Rouvrant l’oeil |1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JEAN|La poussière est partie ? C’est de ma femme dont vous parlez ainsi ?|agressif |1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JACQUES|Écoutez, monsieur, à partir de maintenant, chacun pour soi. Moi, je vais tranquillement attendre que mon réveil sonne. Quand je fais un cauchemar, c’est toujours mon réveil qui me sauve au bon moment.  Tic-tac, tic-tac...|s’allongeant sur canapé Fermant les yeux |1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JEAN|Il se cuche ! Il se cuche !  Je suis sûr que vous avez caché ma femme quelque part…|À plat ventre, regardant sous le canapé |1|9|16|Ac|Sc|P|
+Ac1|Sc9|P16|JACQUES|Tic-tac… tic-tac...||1|9|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Quelle tête en l’air ! J’ai oublié mon dissolvant.  Ah !|Lucie entre par la porte jardin  Voyant Jacques allongé sur le canapé et Jean à plat ventre |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JACQUES ET JEAN|Emmanuelle !|(Jean & Jacques) sursautant, voyant l’urne par terre |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Mais non, c’est moi, Lucie !||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JACQUES ET JEAN|Emmanuelle !!!|(Jean & Jacques) en rampant, et jacques à quatre pattes, se dirigent vers elle |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Jacques tu ne me reconnais plus ?! Et qu’est-ce qu’il me veut, le corbeau ?||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JACQUES|Tu le vois bien : il rampe à tes pieds.|continuant sa progression |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Oh là là ! Ils ont fumé un pétard !|Sprint final des deux  Jacques se saisit de l’urne |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JEAN|Elle est revenoue, quel bonheur !||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Ah ! Quand même, enfin un mot gentil !|le prenant pour elle |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JACQUES|C’est toi qui avais pris ça ? Tu sais ce que c’est, malheureuse ?||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|LUCIE|Bien sûr, c’est un truc de bonne femme !||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JEAN|Un truc de bonne femme !!!|effondré |1|10|16|Ac|Sc|P|
+Ac1|Sc10|P16|JACQUES|Mais calmez-vous, enfin ! Tout va bien, Lucie nous l’a rendue.||1|10|16|Ac|Sc|P|
+Ac1|Sc10|P17|LUCIE|Comment ça, ? Ah non ! Jacques tu ne partages pas avec moi un instant. C’est uniquement pour ta consommation personnelle.|nous|1|10|17|Ac|Sc|P|
+Ac1|Sc10|P17|JACQUES ET JEAN|Hein ?||1|10|17|Ac|Sc|P|
+Ac1|Sc10|P17|LUCIE|Et quand t’auras vidé ça, petit veinard, tu rendras Corinne très… très heureuse !|exagérant|1|10|17|Ac|Sc|P|
+Ac1|Sc10|P17|JACQUES|Très très heureuse ? Avec ça ?! Faudra qu’on m’explique ! Mais d’abord pourquoi t’as quitté mon mariage ?||1|10|17|Ac|Sc|P|
+Ac1|Sc10|P17|LUCIE|Chéri, on a fini les escargots, on va attaquer le poisson…||1|10|17|Ac|Sc|P|
+Ac1|Sc10|P17|JACQUES|Eh bien, t’attaqueras le poisson sans moi. Et puisse une arête te clouer définitivement le bec ! Tourille, tout s’écroule… Je m’enfonce, je m’enfonce…|Il referme la porte jardin sur Lucie|1|10|17|Ac|Sc|P|
+Ac1|Sc11|P17|JEAN|Monsieur Lasségoué, le plus important, dans la vie, c’est d’accomplir son devoir.|prenant l’urne pour monter l’escalier|1|11|17|Ac|Sc|P|
+Ac1|Sc11|P17|JACQUES|Oh oui ! Être en paix avec sa conscience !  C’est pas vrai, il recommence ! Vous êtes têtu, vous ! Donnez-moi ça, voyons ! |élégiaqueVoyant Jean monter Il tente de lui arracher l’urne |1|11|17|Ac|Sc|P|
+Ac1|Sc11|P17|JEAN|Mais ses dernières volontés…||1|11|17|Ac|Sc|P|
+Ac1|Sc11|P17|JACQUES|… sont à l’opposé des miennes.  Ah !!! Il y a des jours comme ça où tout bascule !|Chacun tirant de son côté, l’urne chute et se renverse par-dessus la balustrade |1|11|17|Ac|Sc|P|
+Ac1|Sc11|P17|JEAN|Ma femme ! Vous l’avez laissée tomber !||1|11|17|Ac|Sc|P|
+Ac1|Sc11|P17|JACQUES|Quelle horreur !!! Maintenant elle est partout ! Même sur les spectateurs du premier rang.|Carillon porte d’entrée  Une voix off derrière la porte jardin |1|11|17|Ac|Sc|P|
+Ac1|Sc12|P17|QUERROCHOT|Monsieur Lasségué, vous êtes là ?||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|JACQUES|Non !!! Y a plus de Lasségué. Il n’en peut plus, le Lasségué. Il est laminé, le Lasségué.||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|QUERROCHOT|Ça m’étonnerait, je reconnais votre voix…||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|JACQUES|Tourille, je vous en supplie, allez vite tirer le verrou.||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|JEAN|Le verru ! Le verru !|se précipitant vers la porte|1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|QUERROCHOT|Je viens de croiser votre sœur, elle m’a bien recommandé d’insister…||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|JACQUES|Oh non ! Pitié ! Qui c’est, celui-là, encore ?||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|QUERROCHOT|Vous ne me reconnaissez pas ?||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|JACQUES|Non, monsieur, je ne reconnais plus personne.  Même celle que j’ai beaucoup aimée ! Sortez, monsieur. L’instant est trop grave.|Regardant le sol |1|12|17|Ac|Sc|P|
+Ac1|Sc12|P17|QUERROCHOT|Je pense bien. Un mariage, c’est pas une chose qu’on fait à la légère.||1|12|17|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Légère ?  Oh oui ! Tellement légère !|Regardant le sol |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QUERROCHOT|Querrochot, mon nom vous dit bien quelque chose ?||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Non, monsieur, plus rien ne me dit. Allez-vous-en, s'il vous plaît.||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QUERROCHOT  |Mais si, Quentin Querrochot, de la  Gazette rurale. En bas de mes articles, on imprime mes initiales : « Q.Q. ».||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Et il en est fier !||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Au journal, on dit toujours : « Avec Querrochot, l'info est bien au chaud. »||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Eh bien, ici : « Chez Lasségué, on est bien fatigué. » Tourille, faites-le partir.||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Mais on m'a chargé de vous consacrer une page entière… et ça fait une heure que je poireaute à l'auberge ! |Il se dirige vers le milieu du salon |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES et JEAN|Ah !!!|horrifiés |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Arrêtez ! Mais arrêtez ! Vous marchez dessus !!!||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Hein ? Mais sur quoi ?||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JEAN|Sur… sur la moquette. M. Lasségué est très maniaque pour sa moquette.||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Ah bon ? Cela dit, je vous félicite : elle est superbe.||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Elle était superbe ! Ne marchez pas avec vos pieds !!!||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ|Mais avec quoi voulez-vous que je marche ?!|décontenancé |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Tourille, réagissez, voyons ! Il est en train de la piétiner !!!||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ|Excusez-moi mais là… je ne sais plus où aller !|perdu |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JEAN|Monsieur, ce que vous nous infligez, c’est atroce, c’est inhoumain…||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|C’est pire que ça : c’est sacrilège !||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Qu’est-ce qu’elle a donc, cette moquette ? C’est de la laine vierge ?||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Vierge ?!  Oh non ! Loin de là !|Explosion de rire |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JEAN|Alors ça, voyez, c’est déplacé !|à Jacques furieux |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Je sais, je n’ai pas pu résister.  Ne bougez plus, vous !  Dehors !|lui répondant sur le même ton   À QQ QQ s’immobilise |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ|Faut savoir ! Vous venez de dire…|faisant un pas |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Oh non ! Il remarche dessus !!! Montez sur le canapé !||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ  |Qui ? Moi ? Mais je vais abîmer le cuir…||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JACQUES|Ça n’a aucune importance, c’est de la peau de bête. C’est beaucoup moins grave que… que… Hein, Tourille ?||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|JEAN|Bien sûr ! Le cuir, ça respire… Elle, elle ne respire plou !!!||1|12|18|Ac|Sc|P|
+Ac1|Sc12|P18|QQ|Pourquoi ? C’est du synthétique ? Elle est ignifugée ?|montant sur le canapé |1|12|18|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES et JEAN|Ignifugée !!!|(Jean & Jacques) |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Tourille, je sens que je vais faire un malaise. Montrez-lui le chemin.||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JEAN|Oui, mais elle bloque tout !||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |On joue à quoi, là ? À chat perché ?||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JEAN|On ne joue pas ! Vous descendez du couir et vous me souivez !|près du canapé |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Pardon ?||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Souivez-le ! Mettez vos pieds exactement dans les pas de Tourille.|QQ descend du canapé |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Pourquoi ? Vous avez posé des mines ?||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JEAN|Concentrez-vous au lieu de discouter… ||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Mais pour mon interview ?|Il le frappe car QQ a marché sur des cendres |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Oh ! La pauvre ! Qu’est-ce qu’on lui fait subir !|QQ passant délicatement chaque pied |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Pourtant je me fais le plus léger possible.||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Pardonne-nous… Pardonne-nous !|implorant le sol avec des courbettes |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |J’avais jamais vu quelqu’un demander pardon à sa moquette ! Tout à l’heure, c’est elle que vous auriez dû épouser.||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Dans son état, c’était pas possible ! Pauvre chérie !||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Pauvre chérie ?! Alors là, c’est carrément du fétichisme !  Tiens, qu’est-ce qu’il y a par terre ? |Regardant le sol Il va pour toucher le sol |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Ah !!! Ne la touchez pas avec vos doigts !!!||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JEAN|Pitié, pitié, monsieur, elle a déjà terriblement souffert !|QQ touche le sol du doigt |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES et JEAN|Ah !!!  Ah !!!  Ah !!! Ah !!!  Ah ah ah ah ah !!!||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |C’est bien ma veine, je suis tombé sur deux fêlés !... Et pour mon interview ? Parce qu’à l’origine, je n’étais pas venu pour faire le grand écart !|Pour en avoir le cœur net, QQ retouche le sol Pour le plaisir de les entendre crier, QQ le refait deux fois Puis une série rapide |1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Je vous rejoins dès que j’en ai terminé avec madame.||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|QQ  |Madame ?!||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P19|JACQUES|Enfin monsieur, c’est pareil !||1|12|19|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Ah ! d’accord, je vois ! Bon, je vous attends à l’auberge. Là-bas, ça devrait mieux se passer...  C’est du parquet. |Ton affirmé Il va pour sortir |1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JACQUES  |Attendez !!! Tourille, prenez-lui ses chaussures !||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JEAN|Ses chaussures ? Pour quoi faire ?||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JACQUES|Réfléchissez ! Elle est peut-être un peu sous lui !||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Sous moi ?!||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JEAN|Très juste !  Vous allez les enlever, oui ?|Menaçant |1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Oui, oui, ne criez pas... Et dire qu’il y en a qui croient que journalisme, c’est un métier de tout repos...  Enfin, c’est quand même deux cas cliniques !|ôtant ses chaussures et dévoilant deux énormes trous dans les semelles Jean soupire fortement de désespoir |1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JACQUES|Parfait, Tourille, parfait... Vous êtes consciencieux.||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Ils doivent faire partie d’une secte, genre « Les Adorateurs de la Moquette ».||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JACQUES|Regardez bien les semelles. Il n’en reste pas dans les rainures ?||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JEAN|Rien dans les rainoures. Et rien dans les trus.  Qu’est-ce qu’il attend pour dégager, cet ahuri ?|examinant les semelles Il rend ses chaussures à QQ |1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Comme si j’allais vous en embarquer des bouts !||1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|JACQUES ET JEAN|Des bouts !!!|éplorés |1|12|20|Ac|Sc|P|
+Ac1|Sc12|P20|QQ  |Ça y est, les revoilà en pleine crise ! Ne vous inquiétez pas. Rien qu’avec tout ça, j’ai de quoi vous pondre un article gratiné. Merci pour votre hospitalité.  Monsieur, madame... |Saluant Il sort, ses chaussures à la main |1|12|20|Ac|Sc|P|
+Ac1|Sc13|P20|JEAN|Vous voyez ce qui est arrivé par votre faute ?|désignant la moquette |1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JACQUES|Dites donc, ici c’est vous qui vous incrustez, pas moi.||1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JEAN|Je ne m’incruste pas, mais on ne peut pas la laisser comme ça.  C’est pas vrai !!! Il avait un aspirateur et il ne le disait pas, dis donc ! |Découvrant un aspirateur Il prend l’aspirateur |1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JACQUES|Quoi ? Vous n’allez quand même pas aspirer Emmanuelle ?!||1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JEAN|Vous avez une meilleure idée ? |Il va pour allumer l’aspirateur |1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JACQUES|Mais ce type est un malade ! Attendez !!! |Il descend l’escalier et pose l’urne sur le bar |1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JEAN|Qu’est-ce qu’il y a ?||1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JACQUES|Comment ça, qu’est-ce qu’il y a ? Mais ce type est un malade ! Il est très malade ! Emmanuelle mérite mieux que ça, voyons. Un peu de délicatesse, enfin. Le minimum qu’on puisse faire pour elle... c’est un sac d’aspirateur neuf !  C’est dément. J’aurais proposé ça comme scénario pour une pub d’aspirateurs, je me serais fait jeter.  J’hésite.|Il sort un nouveau sac qu’il échange avec l’ancien Sur le point de passer l’aspirateur |1|13|20|Ac|Sc|P|
+Ac1|Sc13|P20|JEAN|Pourquoi ?||1|13|20|Ac|Sc|P|
+Ac1|Sc13|P21|JACQUES |Vous croyez vraiment que je peux… comme ça… lui passer dessus ?||1|13|21|Ac|Sc|P|
+Ac1|Sc13|P21|JEAN  |Monsieur, pour une fois que vous me demandez la permission !||1|13|21|Ac|Sc|P|
+Ac1|Sc13|P21|JACQUES  |Vous, alors, pour un mari, vous êtes com… préhensif.  Oh ! mon amour !|Il passe l’aspirateur à l’endroit indiqué |1|13|21|Ac|Sc|P|
+Ac1|Sc13|P21|JEAN|Par là !|désignant un autre endroit |1|13|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Oh ! mon amour !|passant l’aspirateur à l’endroit indiqué|1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE|Jacques !!!|Entrée de Corinne par la porte jardin, en mariée, enceinte jusqu’aux dents |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Oh ! mon amour !|à Corinne, sur le même ton |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE |Je rêve ! On vient de servir le poisson, tout le monde t’attend pour attaquer le filet de sandre…|stupéfaite|1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Le filet de sandre !||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE|Et que fait monsieur ? Il passe l’aspirateur ?||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Absolument. Je voulais m’habituer à mes devoirs d’homme marié.||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE|Pardon ? Tu peux répéter ?  |Elle se dirige vers le canapé |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES ET JEAN  |Ah !!!||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES |Attention où vous mettez les pieds ! |Il la pousse en lui mettant la main aux fesses |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE|Mais qu’est-ce qui te prend ? Pas devant monsieur, voyons !|coquine |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Mais non ! La tradition veut que le marié fasse franchir le seuil de sa maison à la mariée…|la repoussant loin des cendres |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE  |En cinq ans de vie commune, c’est la première fois que je te vois utiliser un appareil ménager. Ça cache quoi, cette conversion subite ?|Jean passe l’aspirateur énergiquement |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES  |Mais rien, ça ne cache rien. C’est vous qui m’aviez caché que c’était si distrayant ! Moi aussi j’ai des envies de femme enceinte  Des pulsions incontrôlables de faire le ménage.|Jean lui aspire ses semelles de chaussures   Jean éteint l’aspirateur|1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE  |C’est ça. Et cet individu à tes côtés, c’est Monsieur Propre. Jacques bien que je sois née dans le Périgord, ne me prends pas pour une truffe. Qui est cet homme ?||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES |Bonne question ! Cet homme c’est… un monsieur. Monsieur, je vous présente ma femme|À Jean |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JEAN |Enchanté. Madame, je vous présente la mienne. |Montrant l’aspirateur   |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|CORINNE  |Pardon ?||1|14|21|Ac|Sc|P|
+Ac1|Sc14|P21|JACQUES|Mais quel abruti ! Non, il voulait dire que…  Oh ! Puis tant pis, je n’ai plus la force de mentir !|à partÀ Corinne  À Jean |1|14|21|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE|Alors là, tu me surprends...||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Trésor, il s’avère que l’épouse de monsieur... par un concours de circonstances ahurissant... se trouve précisément...  à la tête de la firme qui a fabriqué cet appareil.|Montrant l’aspirateur |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |En effet, c’est ahurissant ! Alors comme ça, monsieur, votre femme est dans l’aspirateur ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JEAN|Euh...|perdu, regardant jacques   |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Ah si ! Ah si ! Ça, on peut le dire !|à Jean  |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JEAN|Alors oui, madame, ma femme est dans l’aspirateur. Vous voulez vérifier ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Mais qu’il est con !|à part  |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Et depuis combien de temps ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JEAN|Trois minoutes.||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Pardon ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Trois minutes... avant votre arrivée, monsieur m’a confié le budget de sa prochaine campagne publicitaire. Des millions d’euros.  Il peut essayer de suivre un peu, lui !|À Jean |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Jacques tu ne vois pas que je suis sur le point d’exploser ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Retenez-vous, Trésor. Le médecin a bien recommandé...||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Là, j’avoue, tu me gâtes !  Ah !!!|Surtout pas de choc nerveux Se retournant avec le ventre |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Qu’est-ce qu’il y a ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Mets ta main sur mon ventre.  T’as senti ?|Jacques s’exécute |1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|C’était qui ?||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Bébé ! Qui veux-tu que ce soit ?!||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JEAN|Oh ! Qu’est-ce qu’il est con, lui, aussi !||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|CORINNE  |Il avait très envie de te donner un coup de pied. Lui, au moins, il est solidaire. Jacques si dans les cinq minutes tu n’es pas à la noce, je divorce. ||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JACQUES|Trésor, ne me tentez pas !||1|14|22|Ac|Sc|P|
+Ac1|Sc14|P22|JEAN|Au revoir, madame. Et tous mes vœux de bonheur !|à la cantonade |1|14|22|Ac|Sc|P|
+Ac1|Sc15|P22|JACQUES|Merci, Tourille, on a bien besoin d’encouragements.||1|15|22|Ac|Sc|P|
+Ac1|Sc15|P22|JEAN|J’ai remarqué un trouc bizarre dans votre couple. Votre femme vous tutoie... mais vous, vous la vouvoyez !|se remettant à passer l’aspirateur |1|15|22|Ac|Sc|P|
+Ac1|Sc15|P22|JACQUES|Seulement depuis qu’elle est enceinte, pour pas que le fœtus se sente exclu de nos conversations.||1|15|22|Ac|Sc|P|
+Ac1|Sc15|P22|JEAN|Et notre Emmanuelle était au courant de cette grossesse ?||1|15|22|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|Oh non ! Et j’ai bien fait. Ça lui aurait fait de la peine inutilement.||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|Ah oui ? Et certainement ! Et votre femme attend quoi ? Garçon ou fille ?||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|On l’a vu très nettement à l’échographie, la layette sera rose.||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|J’espère qu’au moins vous l’appellerez Emmanouelle.||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|Emmanuelle ! Pardon pour tout ce que je t’ai fait. Je t’aime… je t’aime… je t’ai… C’était son dernier souffle|douloureux  Il jette dernières poussières en train d’être aspirées, vers l’embout de l’aspirateur  |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|Ça y est, elle a fini de traîner…|attrapant l’aspirateur |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|Je réalise toujours pas qu’elle est… Tenez, je vous la confie.|retirant le sac de l’aspirateur  Il donne le sac à Jean |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|Oh ! elle a repris des formes !|après un soupir |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|Regardez, là, elle vient d’éternuer! C’est comme si le choc m’avait anesthésié. Ca y est, il recommence! Vous ne repartirez pas sans l’avoir répandue sur mon lit?|attrapant sur son comptoir un faire sortir un jet de poudre  voyant Jean monter  |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|Non, monsieur…||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|Alors, allez-y, procédez !||1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JEAN|Oh oui, procédons ! Viens, mon amour, on va te  saupoudrer !|Entrant dans la chambre de Jacques  |1|15|23|Ac|Sc|P|
+Ac1|Sc15|P23|JACQUES|“Te saupoudrer” !! J’en serai quitte à repasser un bon coup d’aspirateur.  Mais attendez-moi ! Je fais quand même partie de la famille, non ?|Montant vers la chambre  |1|15|23|Ac|Sc|P|
+Ac1|Sc16|P23|LUCIE|“Allez, hop, viens boire un p’tit coup à la maison…”|Lucie entre avec deux coupes de champagne  chantant |1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|JACQUES|Oh non ! Ce n’est pas une sœur que j’ai, c’est un boomerang !|fermant sa porte de chambre |1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|LUCIE|Ça y est, t’es enfin seul ? Allez, Jacques on trinque à tes amours et on part s’éclater à ton mariage.||1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|JACQUES|Comme si j’avais le cœur à boire du champagne…|descendant  |1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|LUCIE|Tu sais comment les invités t’ont surnommé ? L'Arlésienne||1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|JACQUES|Et toi, à force de surgir tous les quarts d’heure, le coucou suisse. Mais quand cesseras-tu de me materner ?|le coucou suisse|1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|LUCIE|Jacques c’est quoi ton problème ?||1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|JACQUES|Mais toi ! Uniquement toi ! Pourquoi faut-il que tu sois toujours sur mon dos ?|la faisant sortir |1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|LUCIE|Entre frère et sœur, on se doit assistance. Et mon bonheur, c’est toi.||1|16|23|Ac|Sc|P|
+Ac1|Sc16|P23|JACQUES|Et moi, mon bonheur, c’est moi sans toi ! Alors laisse-moi un peu vivre… avant que je devienne gâteux…||1|16|23|Ac|Sc|P|
+Ac1|Sc16|P24|LUCIE|Dis donc, espèce d’ingrat, n’oublie jamais que c’est moi qui t’ai créé de toutes pièces.||1|16|24|Ac|Sc|P|
+Ac1|Sc16|P24|JACQUES|Quelle horreur ! J’ai l’impression de m’entendre ! Lucie, laisse-moi… La situation est tragique… Michel nous lâche||1|16|24|Ac|Sc|P|
+Ac1|Sc17|P24|JEAN|Monsieur Lasségué ?|sortant de la chambre de Jacques  à la cantonade|1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Ah !!! Il est encore là, le corbeau ? Mais qu’est-ce qu’il fait dans ta chambre ?||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Mais oui, ma sœur a raison, qu’est-ce que vous faites dans ma  chambre ?|faisant les gros yeux  |1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JEAN|Enfin, vous le savez bien… euh… je vous attends pour le lit ! |perdu Il rentre dans la chambre et referme la porte sur lui |1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Comment ça, il t’attend pour le lit ?!||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Hein ? Mais oui, pourquoi il a dit ça ?||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Jacques j’ai peur de comprendre…|stupéfaite |1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Quoi donc ?||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Oh non ! Ne me dis pas qu’entre toi et ce monsieur…||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Pardon ?!||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Ce n’est pas possible ! Pas toi ! Pas le jour de ton mariage !||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Mais enfin, qu’est-ce que tu vas insinuer ?||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Toi alors, t’as une de ces santés !||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Lucie !!!||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Toute ta vie, il aura fallu que tu innoves !||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Écoute, je t’expliquerai, mais là il est très pressé, on doit procéder.||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Oh ! Mais procédez ! Surtout ne vous retardez pas pour moi ! C’était donc vrai : à tout moment, un homme peut basculer !||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Lucie, ça suffit. Retourne immédiatement à l’auberge.||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|LUCIE|Oh !!! T’as bu ton aphrodisiaque ?|découvrant l’urne vide |1|17|24|Ac|Sc|P|
+Ac1|Sc17|P24|JACQUES|Mon quoi ?||1|17|24|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE |Je t’avais dit de ne pas le partager avec le corbeau. Dis donc, il est drôlement efficace !||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|JACQUES|Lucie, arrête, je suis à bout de nerfs…||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE|Pourquoi t’as tout vidé ?|montrant l’urne vide|1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|JACQUES|Mais c’est pour ça qu’il est dans ma chambre…||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE |Tu vois, tu confirmes !||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|JACQUES |Et il ne partira pas avant d’avoir obtenu sa-ti-sfac-tion !||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE|Oh là là ! Voilà pourquoi il pleurait en arrivant. Tu lui avais caché ton mariage. Pauvre bichon !||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|JACQUES |Non mais t’as fini ?!||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE |Avec son petit cendrier d’amour !||1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|JACQUES|Lucie, dehors ou je fais un malheur !!!|excédé|1|17|25|Ac|Sc|P|
+Ac1|Sc17|P25|LUCIE |Oui… ma Jacquotte ! Je vais retrouver ta femme. Enfin… l’officielle ! Pour moi, la seule  chose qui compte, c’est que tu sois heureux. Mais là, tu fais fort. Chantant à la Sardou. « Le rire du sergent, la folle du régiment… » Elle sort par le jardin.||1|17|25|Ac|Sc|P|
+Ac1|Sc18|P25|JACQUES|Décidément, aujourd’hui, j’aurai eu ma dose !|montant l'escalier|1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEAN|Ça y est ? Elle est partie ? Je vous attends pour le lit…|sortant de la chambre |1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JACQUES|Oui, on en a pas mal parlé avec ma soeur, je vous  remercierai jamais assez. Bon, on va la renverser ?|montant vers sa chambre|1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEAN|Je vais fermer la porte pour  éviter un courant d’air. Manquerait plus qu’elle s’envole… Il referme la porte derrière lui.|le faisant passer et entrant derrière lui dans sa chambre|1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEUNE FEMME|Y a quelqu’un ? Pourvu que j’arrive à temps… Quelle journée !  Oh non ! Trop tard ! |Une jeune femme se faufile par la porte jardin  Elle voit l’urne vide sur le bar  Elle s’en empare (mezzo voce)|1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEAN|Adieu, chérie. Repose en paix sur ce lit.|La porte de la chambre de Jacques s’ouvre  de dos, lugubre, vers la chambre  |1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JACQUES|C’est ça, repose en paix sur ce lit. Allez, Tourille, bon retour sous les cocotiers. Votre départ va créer  un vide.|idem En descendant l'escalier|1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEAN |Je vais vous laisser mon adresse à Tahiti, on ne sait jamais.||1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JACQUES |Bien sûr. Dès que j’aurai une personne incinérée à disperser, j’irai vous rendre la politesse! Reprenez votre urne.||1|18|25|Ac|Sc|P|
+Ac1|Sc18|P25|JEAN |Gardez-la en souvenir.||1|18|25|Ac|Sc|P|
+Ac1|Sc19|P25|JACQUES |Non, non. Si vous vous remariez, elle pourra peut-être vous resservir… Mais où elle est ?  Elle était là, sur le bar… . Merci, Emmanuelle.  Emmanuelle !!! |La jeune femme sort de derrière le bar, lui tendant l’urne, à Emmanuelle, réalisant, s’évanouit à moitié. Jean le rattrape le soutein vers le canapé, lui tournant la tête pour l’empêcher de voir Emmanuelle |1|19|25|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|Mais t’es dingue ! Tu fiches tout par terre, casse-toi ! Monsieur Lasségué, qu’est-ce qui vous arrive ?||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Emmanuelle… là!|dans les vapes |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|C’est impossible ! Elle n’est plous !!!||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Jean arrête ! Regarde dans quel état tu l’as mis !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|Parce que c’est ma faute ?!!||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Emmanuelle ! Tu n’es pas… sur mon lit ?||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Mais non, minou, je suis là… en pleine forme !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Mamour !  Elle est vivante !|Il la touche pour vérifier  À Jean |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Mais pourquoi tu pleures ?|à Jacques qui sanglote |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|C’est pas moi, c’est les nerfs ! Mais par quel miracle…|Emmanuelle l’embrasse sur la bouche |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|Alors ça, c’est le pompon ! Elle l’embrasse sur la buche !!! Mais ils vont se décoller, oui ?!|énervé |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Arrête, pas devant ton mari ! Mais alors, Tourille, tout ce que vous m’avez raconté…  Petit con ! Je vais te casser la gueule !|se dégageant, reprenant sa respiration Le prenant au collet |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|Doucement ! L’auteur du canular, c’est…||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Quoi ? C’est toi qui…|à Emmanuelle |1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Tu permets que j’explique ? Quand je suis rentrée d’Hawaï plus tôt que prévu…||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Pourquoi tu ne m’as pas téléphoné ?||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Pour te dire quoi ? « Une bonne copine vient de m’apprendre que tu te maries. Et je te parie que ce n’est pas avec moi. »||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Non, mais…||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Alors que tu m’avais promis de divorcer ! T’imagines la haine ? Je n’avais plus qu’une idée en tête : te faire souffrir un max.||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Dis donc, toi, tu m’avais bien caché ton guignol de mari !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Lui ? Mais c’est mon frère !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Quoi ?||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JEAN|Eh oui ! On est frère et sœur, comme vous et l’autre frappadingue !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|EMMANUELLE|Alors, hier, quand Jean a débarqué de Tahiti… en me voyant destroy, il a accepté de m’aider.||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P26|JACQUES|Mais vous êtes diaboliques, tous les deux ! J’aurais pu faire un infarctus !||1|19|26|Ac|Sc|P|
+Ac1|Sc19|P27|EMMANUELLE |C’est vrai, il a eu du chagrin ?|à Jean |1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JEAN|Bof…||1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JACQUES|Comment ça, bof ? Foutez le camp, vous m’écœurez !|furieux |1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|EMMANUELLE  |Jacques, ce matin, j’ai voulu tout laisser tomber… mais pas moyen de prévenir Jean. Alors j’ai sauté dans ma voiture…||1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JEAN|Et la voilà, tel un phénix qui renaît de ses cendres ! C’était bien la peine que je m’emmerde  à passer l’aspirateur.||1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|EMMANUELLE  |Si tu savais comme je regrette…||1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JACQUES|Oh, ce n’est rien comparé aux regrets éternels… Adieu !||1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|EMMANUELLE  |Adieu ?|Jacques fait "oui" de la tête.|1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JEAN|Oui, il a dit « adieu ». Allez, hop! On met les voiles ! Pardon, monsieur, on a un peu gâché votre mariage, on ne le refera plus, c’est promis. T’es garée où ?  Tu peux marcher normalement…|Jean ouvre porte cour,  Emmanuelle vers lui, referme la porte, revient vers Jacques l’embrasser (petits coups de croupe et soupire), en crescendo,  Jacques résiste 2 fois, 3ème soupir amoureux, 4ème un gros soupir|1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JACQUES|Mamour ?|craquant |1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|EMMANUELLE|Minou ?|sur le seuil de la porte  |1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JACQUES|Viens, je pardonne ta faute. « Incinérée », ça ne prend qu’un « n » !|lui tendant les bras  Emmanuelle tombe dans ses bras  Ils s’embrassent |1|19|27|Ac|Sc|P|
+Ac1|Sc19|P27|JEAN|Et c’est reparti pour un tur ! Qu’est-ce que je suis venu fiche ici ?  Ooooh !!!  Avec moi, ça ne marche pas !|Après un temps, il imite sa sœur en se dandinant et en poussant un cri sensuel Comme ils ne bougent pas…|1|19|27|Ac|Sc|P|
+Ac1|Sc20|P27|CORINNE|Jacques ! |off Jacques tente de se dégager, mais Emmanuelle le retient |1|20|27|Ac|Sc|P|
+Ac1|Sc20|P27|JACQUES |Mais t’es folle ! Lâche-moi, c’est ma femme !|se débattant  Entrée de Corinne par la porte jardin |1|20|27|Ac|Sc|P|
+Ac1|Sc20|P27|CORINNE|Jacques on attaque la volaille !|sur sa lancée, voyant Jacques dans les bras d’Emmanuelle, agressive  |1|20|27|Ac|Sc|P|
+Ac1|Sc20|P27|JACQUES|Trésor ? Alors comme ça, vous attaquez la volaille ?|piteux  Jean glisse le tuyau de l’aspirateur entre Jacques et Emmanuelle, toujours enlacés |1|20|27|Ac|Sc|P|
+Ac1|Sc20|P27|JEAN|Surtout, on ne se déconcentre pas !  Je vous les lâche dans deux secondes, madame.  Vous aviez raison monsieur Lasségué. C’est ça la bonne photo pour notre campagne d’affichage. Il est sympa, il a accepté de prendre la pose, comme ça je m’en rends mieux compte en live. Sincèrement, madame, vous en pensez quoi de tout ça ?|À Corinne Cadrant une photo imaginaire |1|20|27|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE  |Sincèrement ? Je pense que je n'aurais jamais dû me marier. Vous ne croyez pas ?||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JEAN|Ben…||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|EMMANUELLE|C'est-à-dire que vu le très heureux événement que vous attendez…|désignant son ventre, amour |1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Oui, ça c'est la bonne surprise !||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|EMMANUELLE  |… c'était difficile de ne pas respecter les formes…||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Ah !|à Emmanuelle, comme pour dire « tu  vois » |1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE|Jacques à qui ai-je l'honneur ?||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Trésor, je vous présente… euh…||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JEAN|Ma femme.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Mais oui, ma femme ! Euh… sa femme ! Qui a eu la très bonne idée de nous rejoindre !||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE|En effet, quelle merveilleuse idée ! Madame, vous avez des enfants ?||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|EMMANUELLE  |Pas encore. Pour l’instant, ceux des autres me suffisent. Pourquoi ?||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE |Pour savoir si vous attendez encore du monde. Car nous, à l’auberge, on n’attend plus personne. Excepté le marié. Mais c’est un détail.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|J’arrive, Trésor. Ça y est, nous avons conclu un marché. Allez, au revoir, chers amis, ma volaille m’attend ! Vous rentrez chez vous, et vous, rendez-moi mon aspirateur. |Il reprend l’aspirateur à Jean |1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|EMMANUELLE|Eh bien, « vive la mariée » !||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JEAN|Madame, on vous souhaite un beau bébé.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE |S’il tient de son père, il sera invisible.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Je vous raccompagne jusqu'à votre voiture.|aux Tourille, qui sortent |1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE|Oh non, toi je ne te lâche plus. Tu m’attends ici. |Elle monte l’escalier |1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Mais Trésor, où allez-vous ?||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE|Chercher l’album de famille. À la demande du cousin Alphonse.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|JACQUES|Celui-là, quelle plaie ! Ne bougez pas, j’y vais.||1|20|28|Ac|Sc|P|
+Ac1|Sc20|P28|CORINNE  |Surtout pas. À chaque fois que tu cherches quelque chose, c’est comme si un cyclone dévastait la maison.  Oh non ! Les revoilà, eux ! Tiens plutôt compagnie à tes clients. |Voyant les Tourille revenir sur le pas de la porte Elle entre dans leur chambre |1|20|28|Ac|Sc|P|
+Ac1|Sc21|P28|JACQUES|Mes clients !  Pourquoi vous êtes revenus ?|À mi-voix |1|21|28|Ac|Sc|P|
+Ac1|Sc21|P28|EMMANUELLE|Ta femme, c’est tellement mignon quand tu l’appelles « Trésor » !||1|21|28|Ac|Sc|P|
+Ac1|Sc21|P29|JACQUES|Ah… non… non… mais ça, c’est… à cause de sa fortune. « Trésor », c’est un diminutif de « trésorerie ».||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|EMMANUELLE|Et ta future paternité, ce sont tes intérêts ? Tu ne m’avais pas dit que ta femme, tu ne la touchais plus ?||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|JACQUES|Je t’assure, je n’ai jamais compris comment Corinne a pu tomber enceinte.||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|JEAN|Moi, je sais ! Il a suffi d’une fois…||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|JACQUES|Même pas. Je le saurais, quand même. La seule explication valable…||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|EMMANUELLE|C’est que tu m’as menti. Et tu t’apprêtes à recommencer.|baissant la voix |1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|JACQUES|Chut ! Pas du tout. Bon, toi et moi, on n’a jamais eu l’occasion de dormir ensemble… mais parfois, la nuit, il m’arrive d’être somnambule…||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|JEAN|Somnambule !?||1|21|29|Ac|Sc|P|
+Ac1|Sc21|P29|EMMANUELLE|Oui ! Oh il est costaud, le minou !! Il se reproduit en dormant !||1|21|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE|Oh !!! C’est quoi cette horreur sur mon lit ?!|sortant de la chambre en tenant un dessus-de-lit |1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JACQUES|Oh! Zut! J’avais complètement oublié!!!||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE  |Jacques d’où provient ce résidu grisâtre ?||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JEAN|Euh…||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE  |Pardon ?||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JEAN|De l’au-delà… des mers. C’est du sable volcanique de Tahiti.|d’un ton normal |1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|EMMANUELLE |Oui, j’en fais collection||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE|Vous peut-être, mais pas moi. Alors par quel miracle mon dessus-de-lit s’est-il transformé en lagon ? Sur lequel s’est échoué, en prime, un sac aspirateur ?|Jacques perdu, fait signe à Jean |1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JEAN|Ah ! c’est à moi d’expliquer ?! Il est costaud, celui-là !  Monseigneur ! C’est de ma faute, madame. J’ai renversé du sable sur votre lit… pour… pour…|S’inclinant |1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE|Pour… ?||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JEAN|Une seconde, j’y arrive ! Pour démontrer à votre mari… la force d’absorption de nos aspirateurs… sur un support mou.||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|CORINNE |J’ai beau avoir un QI à trois chiffres, là j’ai du mal à suivre…||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P29|JACQUES|Mais si, le mou ! C’est un argument de vente qu’on néglige trop souvent, le support mou.||1|22|29|Ac|Sc|P|
+Ac1|Sc22|P30|JEAN|Mais oui, c’est bien connu. Et comme… comme…  À vous ! Je passe la main. J’ai déjà pas mal déblayé.|à Corinne À Jacques|1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|JACQUES|Et comme… comme notre brainstorming s’est tenu dans le living, le test du support mou nous est complètement sorti de la tête. Et puis voilà !|à Corinne |1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|CORINNE|Et puis voilà ! Madame, monsieur, trouvez-vous normal que le jour de mes noces, on me rabâchat les oreilles avec un support mou ?|ironique |1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|JACQUES|Ah non !|En cœur, avec Emmanuelle et Jean|1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|CORINNE  |C’est bien ce qu’il me semblait. Alors au cas où vous auriez encore des envies irrépressibles de tester l’aspirateur, la marchande de sable, qui est loin d’être molle, elle, va vous effectuer une livraison. Et hop  ! |Elle secoue le dessus-de-lit par-dessus la mezzanine |1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|JACQUES|Aaaah !!! |Fermant un œil |1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|CORINNE, EMMANUELLE et JEAN|Quoi ?||1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|JACQUES|J’ai un grain de sable dans l’œil ! Dans le même, en plus !||1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|CORINNE|Oh ! Pauvre petite chose, va !|raillant |1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|JACQUES|Mais vous ne pouvez pas savoir comme c’est douloureux d’avoir un corps étranger dans l’organisme !||1|22|30|Ac|Sc|P|
+Ac1|Sc22|P30|CORINNE  |En effet, depuis neuf mois, je l’ignore complètement ! |Elle entre dans sa chambre |1|22|30|Ac|Sc|P|
+Ac1|Sc23|P30|JACQUES|Tourille, ce grain de sable vous appartient. Reprenez-le, je ne veux rien vous devoir.  Aaaah !|s’asseyant Ouvrant l’œil atteint |1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JEAN|Montrez ! J’ai rarement vu un œil aussi rouge…|penché sur Jacques|1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JACQUES|Faut dire qu’aujourd’hui, il y a eu du passage. Ça pique !||1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JEAN|Ne bougez pas, je vais vous l’enlever à la tahitienne. Toi tu connais ! |il déboutonne sa chemise  |1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JACQUES|Si vous dites ça pour me rassurer, c’est loupé.||1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|EMMANUELLE|Mais détends-toi, Jean pratique la plongée sous-marine…||1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JACQUES|Il va plonger dans mon œil ?||1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JEAN|Ne dites pas n’importe quoi ! J’ai un souffle hyperdéveloppé…  Comme ça je peux mieux ventiler… Alors, ce grain de sable, sans vous toucher, je vais vous l’aspirer. |Montrant son torse nu Il approche sa bouche de l’œil de Jacques|1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JACQUES|Oh ! voilà qu’il se prend maintenant pour un aspirateur  Ah !!!|! Jean aspire longuement et bruyamment juste au-dessus de son œil |1|23|30|Ac|Sc|P|
+Ac1|Sc23|P30|JEAN|C’est génial, je le sens… Regardez, il est sur ma langue !|la langue tirée  Lucie entre par la porte jardin |1|23|30|Ac|Sc|P|
+Ac1|Sc24|P30|LUCIE|Ah !!!   Quelle horreur !!! Ils ne se cachent même plus !|Jean surpris, tombe dans les bras de Jacques |1|24|30|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|Qu’est-ce qui se passe ?|sortant de sa chambre |1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Monsieur, je sais que vous êtes très pressé mais au moins, retenez-vous devant sa femme!||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|De retenir ? Mais de quoi, Lucie ?||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|De rien. Elle a trop bu de champagne, ce sont les bulles qui lui remontent au cerveau. Allez, maintenant, Trésor, je m’occupe de vous.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Et il enchaîne, nullement gêné ! Quelle santé ! Corinne, votre volaille est toute froide… Vous faites quoi, là-haut ?||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|Vous ne le devinerez jamais : je refais le lit !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Ah! Parce qu’en plus c'est vous qui refaites le li ?  Toi tu’es pas près d’en retrouver une aussi cool !|à Jacques |1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|Bon, Trésor, on retourne au mariage ?|énervé |1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|Lucie, vous savez à quoi s’amusaient ces deux messieurs ?||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE  |Ma pauvre choute, si vous saviez comme je compatis !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|Ils testaient leur support mou !!! Je préfère m’asseoir ! Et c’est qui, cette créature ?|Jacques rougissant et allant se poser sur le canapé |1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|Emmanuelle !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Faut savoir, tout à l’heure tu disais que c’était moi Emmanuelle !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|Qui ? Moi ? Mais t’es complètement pompette !   Madame est la femme de monsieur.|Hurlant |1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Sa femme ? Dis plutôt sa couverture !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE|Non, Lucie, pas la couverture, le dessus-de-lit.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|Corinne, ça fait une heure que je vous attends !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE  |Celui-là, quel culot !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Oui ! Ça, il a le culot qui vieillit mal !||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|CORINNE  |Mes chers amis, si le cœur vous en dit, joignez-vous à la noce.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|EMMANUELLE|C’est vrai ? Génial ! Merci, madame.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JEAN|Merci, monsieur. J’ai une de ces faims ! Vous n’auriez pas des petites saucisses cocktail ? J’adore ça.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|JACQUES|Et puis quoi encore ?! Ici, c’est un havre de paix. La vie doit reprendre son cours normal. Avec des gens normaux.||1|24|31|Ac|Sc|P|
+Ac1|Sc24|P31|LUCIE|Des gens normaux ? Personnellement, je n’en connais plus.||1|24|31|Ac|Sc|P|
+Ac1|Sc25|P31|QQ  |Quentin Querrochot. « Avec Querrochot, l’info est bien au chaud ! »|Entrée par la porte jardin de Querrochot |1|25|31|Ac|Sc|P|
+Ac1|Sc25|P31|JACQUES|QQ !!! Mais qu’est-ce que j’ai fait au bon Dieu !?||1|25|31|Ac|Sc|P|
+Ac1|Sc25|P31|QQ  |Ce n’est pas que je m’ennuie à l’auberge, le rosé est excellent, mais au journal on boucle dans une heure…||1|25|31|Ac|Sc|P|
+Ac1|Sc25|P32|JACQUES|QQ, qu’est-ce que je vous ai dit ?|lui montrant la porte |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ  |Ne vous inquiétez pas, je connais la maison…  On ne sait jamais, si elle était un peu sous moi… dans les rainoures !|Enlevant ses chaussures et murmurant |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Jacques pourquoi il enlève ses chaussures ? Il est musulman ?||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|JACQUES|Sûrement ! Tourille, occupez-vous de QQ !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|JEAN|Suivez-moi, monsieur Coucou !|allant vers QQ |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ|Non, non, ne vous dérangez pas, madame.|à Jean |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Madame ?!||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ  |Oui, enfin, monsieur, c’est pareil.||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|LUCIE|Tu vois, ça commence à se savoir !|à Jacques, railleuse et bien fort |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|JACQUES|Lucie !!!||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ  |J’ai bien repéré le trajet. Écartez-vous, mesdames ! |Il refait les mêmes zigzags que la première fois, à la limite du grand écart |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Qu’est-ce qu’il nous fait? Je sais : Casse-Noisette!||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ|Pardonne-moi, moquette… Pardonne-moi, moquette…|avec des courbettes vers le sol |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|LUCIE|Il est grave de chez grave !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|JACQUES|QQ marchez normalement. Elle vous a pardonné, la moquette !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Mais qu’est-ce que ça peut bien pardonner, une moquette ?||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|LUCIE|Ben, une tache !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Ben lui, c’est une grosse !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ|Raillez, raillez ! Quand l’information est en marche, rien ne l’arrête.|montant sur le canapé |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Mon canapé ! Comme si c’était un podium ! Descendez, monsieur QQ !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ  |Mais ça n’a aucune importance, madame, c’est de la peau de bête… Elle respire !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE  |Mais on ne va pas rester plantés comme ça à subir ce fou ! Oh ! pardon, bébé…||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|LUCIE|Jacques réagis, enfin !||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|JACQUES|J’aimerais bien, mais alors là… j’ai le cerveau qui mouline à vide… QQ retournons à l’auberge sinon ma femme risque d’imploser.||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|CORINNE|Ah !!! Et ton père qui me prend pour un téléviseur !|à son bébé |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|LUCIE|C’est bizarre… Par terre, on dirait de la suie.||1|25|32|Ac|Sc|P|
+Ac1|Sc25|P32|QQ|Ne touchez pas avec vos doigts, ça va hurler !  Aaaaah !!! Ah ah ah ah !  Vous ne réagissez plus, tous les deux ?|affolé Lucie touche le sol  Il crie de toutes ses forces Surpris, à Jacques et Jean |1|25|32|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES|Tourille, soyez sur le coup, voyons. Lucie, tu peux nous le refaire ?||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|LUCIE|C’était où, déjà ? Ah oui ! |cherc partout sur le sol Elle s’écroule |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES ET JEAN|Aaah !!!|sans conviction |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|QQ|Eh ben, voilà, tout redevient normal.||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|CORINNE  |Jacques, je suis au bord de l’hystérie ! Bébé, c’est plus un coup de pied qu’il donne, là, il danse carrément le flamenco !||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES|On est partis. QQ, ouvrez la marche.||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|QQ|Tout le monde derrière moi. Suivez-moi.||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|CORINNE  |Mais il n’en est pas question !||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES|Si, si, faites comme lui…  . Sinon on ne s’en sortira jamais.|Corinne, Jean et Emmanuelle se placentderrière QQJacques en dernier  QQ se dirige vers la sortie  en zigzag, suivi des autres qui l’imitent  Seule Lucie reste en place |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|QQ  |Surtout, restez bien dans mes pas. Dans la moquette, y a des mines !||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|CORINNE  |Des mines ?!||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JEAN|Il a dû faire l’Irak, c’est un rescapé…||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|CORINNE  |J’en ai connu, des fêlés, mais celui-là…||1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|LUCIE|C’est le gros lot !|QQ sort suivi de Corinne, Jean, Emmanuelle et Jacques |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES|Eh ben, Lucie t’attends quoi pour nous suivre ?|revenant sur le pas de la porte, à Lucie |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|LUCIE|Je suis légèrement secouée. Je préfère attendre tranquillement que les dernières bulles remontent au cerveau.  « Viens bubulle… viens bubulle, viens » Bonne volaille, support mou.|Sur l’air de Viens poupoule |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|JACQUES|Lucie, je te le dis solennellement : c’est la dernière fois que je me marie !|grandiloquent |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|CORINNE|Mais j’espère bien !|revenant le chercher |1|25|33|Ac|Sc|P|
+Ac1|Sc25|P33|LUCIE|Oh ! du calme ! Je ne savais même plus que ça existait ! Si seulement ça pouvait durer longtemps comme ça… « Ô temps, suspends ton vol. » Ah !!! Michel ?! Quelle horreur ! Qu’est-ce qui vous arrive ?!|Jacques sort en claquant la porte  Lucie s’allonge sur le canapé |1|25|33|Ac|Sc|P|
+Ac2|Sc1|P33|MICHEL|Lucie, j’ai vu la mort de près… Je suis miraculé…|soupirant Dans son dos, Rolors vient s’aplatir contre la porte, couvert de suie, visage sale, lunettes brisées, vêtements en loques : le bruit la fait se retourner   entrant, éreinté |2|1|33|Ac|Sc|P|
+Ac2|Sc1|P33|LUCIE|Mais vous n’auriez jamais dû escalader la clôture ! Vous auriez pu finir en brochette…||2|1|33|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL |Non… à dix bornes d’ici… mon hélico… une panne de Rolors… de rotors !||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Il est tombé ?!||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Comme une pierre. En plein champ.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Ça alors ! On n’a rien entendu. Il n’y a pas de morts ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Si… Deux.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Oh là là !||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Deux moutons.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Oh, les pauvres ! Si ça se trouve, je les connaissais.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Heureusement, j’ai pu sortir de l’appareil avant qu’il prenne feu.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Et votre pilote, le rouquin aux grandes oreilles ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Ce salopard s’est enfui sans même vérifier si j’étais vivant.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Il a dû avoir peur de se faire tirer les oreilles. Tenez, buvez ça !|lui apportant un verre |2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL|D’où ça sort ?|méfiant |2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Du frigo…||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Et en plus elle veut m’empoisonner comme une taupe ?!||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Oh là là ! Le cerveau a été touché ! À part ça, vous n’avez rien de cassé ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Si ! Mon portable ! Pas moyen d’appeler des secours.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Mais comment vous êtes venu jusqu’ici ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |En stop, avec un touriste américain.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Et il n’a pas été surpris de vous voir dans un tel état ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Non, il a cru que je fêtais Halloween. Oh ! Il roulait comme un dingue ! Sur un dos-d’âne, on s’est soulevés d’au moins trois mètres.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Entre un hélico qui s’écrase et une voiture qui décolle, c’est pas votre jour ! Ne bougez pas, je préviens Jacques.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL|Surtout pas ! Ça fait dix minutes que je guette son départ. Lui et moi, c’est terminé.||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Mais enfin, pourquoi ce clash entre vous ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL  |Lucie, je suis très minuté. J’ai mon meeting. Aidez-moi, voyons !||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Mais vous me mettez en porte-à-faux vis-à-vis de mon frère. Vous n’auriez pas pu vous écraser un peu plus loin ?||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|MICHEL|Trouvez-moi des vêtements et téléphonez à mon bureau. Je veux illico un autre hélico.|montant l’escalier |2|1|34|Ac|Sc|P|
+Ac2|Sc1|P34|LUCIE|Parce que vous allez remettre ça ?!||2|1|34|Ac|Sc|P|
+Ac2|Sc1|P35|MICHEL  |L’hélico, c’est comme le cheval : dès qu’on tombe, faut remonter.||2|1|35|Ac|Sc|P|
+Ac2|Sc1|P35|LUCIE|Moi je remonterais plutôt sur un cheval, c'est plus facile à parquer …||2|1|35|Ac|Sc|P|
+Ac2|Sc1|P35|MICHEL |Et préparez-moi une collation ! Toutes ces émotions m’ont creusé.||2|1|35|Ac|Sc|P|
+Ac2|Sc1|P35|LUCIE  |Dites, vous vous croyez déjà à l’Élysée ?||2|1|35|Ac|Sc|P|
+Ac2|Sc1|P35|MICHEL|Ah non ! Je suis très minuté, je vous interdis d’ouvrir !|Carillon porte d’entrée |2|1|35|Ac|Sc|P|
+Ac2|Sc1|P35|LUCIE  |Hé ! Ici, c’est moi qui commande. Pigé ? Allez vous nettoyer, moi j’expédie l’intrus. Rompez ! Non mais ! . Pourvu que ce ne soit pas La Grande-Motte !Ah non ! La corbeau femelle !|Michel entre dans la salle de bains Ouvrant la porte jardin  |2|1|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE  |Excusez-moi, j’ai oublié mon sac… |Elle se dirige vers la cour|2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Je vous en prie, faites comme chez vous…  Et il est perché où, le corbeau mâle ?|Regardant par la fenêtre |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Mademoiselle, vous savez de quoi j’ai très envie?||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE|Que je vous recouse un bouton ?!|hébétée|2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Non, piquer une tête dans votre piscine. Depuis ce matin, qu'est-ce que j’ai chaud !… Je peux ?||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Mais il n’en est pas question ! Rhabillez-vous, enfin !||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE  |Pourquoi ? Il n’est pas mimi, mon deux-pièces ?||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Un deux-pièces !? Vu sa superficie, je dirais plutôt un studio !||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE|Avec une vue pas trop désagréable, d’après les connaisseurs !  Il y a quelqu’un, là-haut ?|coquette Raclement de gorge de Rolors |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Pas du tout. C’est moi. J’ai un chat dans la gorge…  Un gros matou Allez-vous-en !|Imitant le râclement grave |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE|Alors ça, j’en aurai le cœur net !|montant l’escalier |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Ce qu’elle peut être collante, celle-là ! Arrêtez ! Oui, il y a un homme dans la salle de bains.||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE|Lucie…|avec un sous-entendu |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|Oh ! ma pauvre petite, ce n’est pas ce que vous croyez ! D’après moi, l’un des plus grands mystères de l’humanité, c’est le triangle des Bermudes et ma sexualité. Alors voyez ! D’autant plus que cet homme, c’est Rolors.||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE|Rolors ?! Mais qu’est-ce qu’il fait là ?| redescendant  |2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|LUCIE|C’est carrément le ciel qui nous le renvoie. Pour le punir de sa trahison. Attendez, vous me donnez une idée…||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P35|EMMANUELLE  |Qui ? Moi ?||2|2|35|Ac|Sc|P|
+Ac2|Sc2|P36|LUCIE|Oui, oui, j’ai vu ça dans un James Bond ! Si je réussissais à vous photographier avec Rolors… dans une pose, disons…|excitée |2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|EMMANUELLE|… compromettante ?||2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|LUCIE|Gagné ! Eh bien, par peur du scandale, je l’obligerais à retravailler avec mon Jacques… en échange du négatif !||2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|EMMANUELLE  |Du chantage ?! Lucie !!!||2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|LUCIE|Je sais. Oh ! que c’est laid !  Mais… Oh ! que c’est efficace !  Il s’impatiente ! Vous avez raison, laissons tomber.|Sur la même intonation Raclement de gorge de Rolors agacé |2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|EMMANUELLE  |Lucie… C’est tout de suite, la prise de vue ?||2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|LUCIE|Vous acceptez ? Oh ! madame… Au nom de mon frère, merci !|Elle va fermer le verrou de la porte jardin  |2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|EMMANUELLE  |Si ça peut lui rendre service… |Elle s’allonge sur le canapé|2|2|36|Ac|Sc|P|
+Ac2|Sc2|P36|LUCIE|Non, non ! Sans vouloir abuser, le décor idéal, ce serait cette chambre. Avec lit en arrière plan.  Allez, dépêchons, on n’a pas que ça à faire ! Dans quoi je m’embarque, moi, encore  Michel, le chemin est libre.|Désignant la chambre de Jacques  L’engeulant presque  Michel sort en sous-vêtements, visage clean, ses vêtements déclarés à la main |2|2|36|Ac|Sc|P|
+Ac2|Sc3|P36|MICHEL  |Déjà ? Je croyais que vous m’aviez oublié.||2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|LUCIE|Oh ! y a pas de risque !. Donnez-moi ça, je vous débarrasse. Sur le lit de Jacques vous trouverez… tout ce qu’il faut.| Prenant ses vêtements|2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|MICHEL|Vous croyez que ça va m’aller ?|vers la chambre de Jacques|2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|LUCIE|Franchement, ça devrait vous plaire !||2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|MICHEL  |Lucie, moi qui vous croyais hostile, là je suis agréablement surpris. |Il entre dans la chambre |2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|LUCIE|Et c’est pas fini !!!  Oh ! Elle me fait  un de ces boulots ! Si mon Jacquot voyait ça, il serait fou de joie !| Elle jette les vêtements Bruits étouffés  Elle prend des photos  On voit sortir la tête de Rolors, hagard |2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|MICHEL  |Qu’est-ce qui m’arrive ?!||2|3|36|Ac|Sc|P|
+Ac2|Sc3|P36|LUCIE|Ce qu’elle est douée ! On dirait qu’elle a fait ça toute sa vie. Je le tiens, le Rolors !||2|3|36|Ac|Sc|P|
+Ac2|Sc4|P36|JACQUES|Mais qui a mis le verrou ?|off, derrière la porte jardin |2|4|36|Ac|Sc|P|
+Ac2|Sc4|P36|LUCIE|Jacques ? Oh non ! Il va tout gâcher !  C’est Jacques !!!|affolée Vers la chambre |2|4|36|Ac|Sc|P|
+Ac2|Sc4|P36|JACQUES|Lucie, t’es là ?|off  -Lucie referme la porte de la chambre |2|4|36|Ac|Sc|P|
+Ac2|Sc4|P37|LUCIE|J’arrive !  Pour une fois qu’il épouse, je ne pourrais pas rester à son mariage ?|Elle cache l’appareil photo derrière un meuble |2|4|37|Ac|Sc|P|
+Ac2|Sc4|P37|JACQUES|Mais qu’est-ce qu’elle fait ?|off  énérvé|2|4|37|Ac|Sc|P|
+Ac2|Sc4|P37|LUCIE|Elle fait tout pour que tu sois heureux ! |jouant la cantonnade elle ouvre la porte côté jardin |2|4|37|Ac|Sc|P|
+Ac2|Sc4|P37|JACQUES|On t’attend pour desservir le fromage. Pourquoi tu t’es enfermée ?|couvert de confettis, serviette autour du cou|2|4|37|Ac|Sc|P|
+Ac2|Sc4|P37|LUCIE|Pour ne pas être dérangée. Je te mijotais une surprise. T’inquiète pas, tout va s’arranger…  Dès que possible !||2|4|37|Ac|Sc|P|
+Ac2|Sc4|P39|JACQUES|Tu sais quel est mon plus grand plaisir ? Ma petite Emmanuelle.||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|LUCIE|Quoi ? Ne me dis pas qu’entre elle et toi… ?||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|JACQUES|Si. Depuis un an.||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|LUCIE|Alors là, ça ne va pas s’arranger du tout ! Et elle n’est pas trop jalouse quand toi et le corbeau… ?|effondrée |2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|JACQUES|Lucie, je n’ai jamais été attiré par les hommes. J’aime trop les femmes pour leur faire ça.  Emmanuelle !!!.|Ayant pris machinalement la robe d’Emmanuelle |2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|LUCIE|Où ça ?!||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|JACQUES|Sa robe ! Qu’est-ce qu’elle fait là ?||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P39|LUCIE|Une robe, ça ? Mais non, c’est un échantillon des prochains rideaux…||2|4|39|Ac|Sc|P|
+Ac2|Sc4|P40|JACQUES|Tu permets ? Je la reconnais. Je l’ai payée assez cher. Ce n’est pas possible, elle est revenue ?||2|4|40|Ac|Sc|P|
+Ac2|Sc4|P40|LUCIE|Moi, je n’ai rien remarqué. Quand je répète, je suis tellement concentrée…||2|4|40|Ac|Sc|P|
+Ac2|Sc4|P40|JACQUES|La piscine ! Dès qu’elle voit une piscine, elle ne peut pas résister. Suis-moi.||2|4|40|Ac|Sc|P|
+Ac2|Sc4|P40|LUCIE|Non, non, je préfère rester ici…||2|4|40|Ac|Sc|P|
+Ac2|Sc4|P40|JACQUES|Tu viens avec moi. À nous deux, on aura plus de poids pour la faire déguerpir.|Jacques entraîne Lucie  Ils sortent par la porte jardin  Dès qu’ils sont sortis, Emmanuelle sort de la chambre de Michel  Court-poursuite |2|4|40|Ac|Sc|P|
+Ac2|Sc5|P40|EMMANUELLE  |Arrêtez, monsieur Rolors ! Soyez raisonnable !||2|5|40|Ac|Sc|P|
+Ac2|Sc5|P40|MICHEL  |Non mais dis donc, qui a commencé ?||2|5|40|Ac|Sc|P|
+Ac2|Sc5|P40|EMMANUELLE  |S’il vous plaît, calmez-vous !||2|5|40|Ac|Sc|P|
+Ac2|Sc5|P40|MICHEL |La femme, c’est comme l’hélico: dès qu’on tombe, faut remonter…||2|5|40|Ac|Sc|P|
+Ac2|Sc6|P40|CORINNE|Jacques? Lucie?  Personne? J’en ai connu, des grands moments de solitude… mais celui-là, en plein mariage, c’est la cerise sur la pièce montée.  Promis, bébé, je ne m’énerve plus, je ne veux pas tout passer.  Je vais me prendre un sachet d’arnica, tous ces mélanges, je suis embouillolée!  C’est fermé. C’est toi, Jacques? Jacques pourquoi tu n’es pas radieux? Tu te fais un shampoing en peignoir de noces?  Pour préserver bébé, la musique des mots étant plus importante que le sens des mots, laisse-moi te dire joyeusement que t’es le pire qu’on puisse épouser.  Un monstre d’égoïsme.  Une ordure BCBGère.  Au moins, t’es pas contraignant.  Quand j’étais petite, je me disais : « Toi, au mariage, ce sera le plus beau jour de ta vie. » Je n’aurais jamais imaginé mon prince charmant avec une tête en serviette-éponge! Tu m’aimes?  Ça faisait trois ans que je ne t’avais pas posé la question, je me doutais de la réponse… mais je l’espérais plus… nuancée. Et pourquoi tu ne m’aimes plus?  En effet, c’est une bonne raison. Toi, tu veux savoir si je t’aime?  C’est par peur de regarder la vérité en face que tu restes caché ?  En attendant, à défaut de sauver notre couple, tu veux sauver les apparences ?  Alors habille-toi. Quand on commence un mariage, on le termine. Oh ! Quand je te vois comme ça, j’ai l’impression d’être pacsée avec une femme afhhane ! C’est pas un sachet que je vais avaler, c’est la boîte entière.| off, porte jardin Emmanuelle s’enferme …|2|6|40|Ac|Sc|P| off, porte jardin Emmanuelle s’enferme dans la chambre de Lucie  Michel tente en vain de forcer la porte  En désespoir de cause, il s’enferme dans la salle de bains  Entrée de Corinne Serrant un nœud En murmurant Essayant d’ouvrir la porte de la salle de bains Michel secoue la tête positivement  Elle se force à garder le sourire Michel secoue la tête positivement  Toujours sur un ton joyeux Michel secoue la tête positivement Michel secoue la tête positivement Michel secoue la tête négativement  Elle tente de lui enlever la serviette, il s’écarte Michel secoue énergiquement la tête négativement Michel baisse les épaules Michel secoue la tête négativement Michel secoue la tête positivement Michel secoue la tête positivement  Corinne tente de lui arracher la serviette, Michel tire dans l’autre sens… Il tourne  la serviette autour de sa tête comme une burka  Michel entre dans la chambre de Jacques   Elle rentre dans la salle de bains  Retour par la cour de Lucie et Jacques qui porte un peignoir et une serviette identiques à ce que portait Michel 
+Ac2|Sc7|P41|JACQUES|T’en loupes pas une… Pourquoi tu m’as poussé ?||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|LUCIE|Je ne t’ai pas poussé, j’ai buté contre une dalle. T’avais qu’à éviter d’être près du bord de la piscine ! Mais en plein soleil ton habit très vite… |Elle lui met la serviette sur la tête  Il ressemble à Michel précédemment |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES|Et l’autre à la robe, là, qui a disparu… C’est toi, là-haut ?|Jacques se frottant la tête Corinne sort de la salle de bains en grognant  |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|LUCIE|Ah !!! ||2|7|41|Ac|Sc|P|
+|||JACQUES|Qu’est-ce que c’est ces manières de se déshabiller?||||||||
+Ac2|Sc7|P41|CORINNE|Ah ! enfin, tu fais ton mea culpa ?||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES  |Oh !!! Trésor, c’était vous ?|voyant Corinne|2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|CORINNE|Eh oui ! Souriante quoi qu’il arrive. Je comprends ta surprise.  Enlève ce peignoir. Je t’ai déjà demandé…|Descendant|2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES|… d’aller chercher l’album de famille pour le cousin Alphonse. Mais entre-temps,  Lucie… plouf ! Dans la piscine !||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|CORINNE|Au fait, il est passé où, cet album ?||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|LUCIE|Dans ma chambre. Hier soir, je voulais revoir les photos de Jacques, enfant…||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|CORINNE|Bon, alors, je vais dans votre chambre, Lucie et toi, pendant ce temps-là … tu te changes.|… Lucie voit Emmanuelle sortir rapidement de sa chambre pour regagner celle de Corinne |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|LUCIE|Aaaaaaaaaah !!!|faisant mine de s’évanouir pour détourner l’attention |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES ET CORINNE|Lucie !||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES|Elle s’est évanouie ! Lucie ! Qu’est-ce qu’on peut faire ?||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|CORINNE|La gifler ! Ça fait trente ans que t’en rêves !|Jacques hésite, lève la main |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|LUCIE|Eh ben, t’attends encore trente ans !  Ouf ! C’est passé. C’est sûr, je suis en manque de dessert. Allez-y, Corinne, je vous apporte l’album. |sentant Emmanuelle passer, n’ouvrant pas les yeux Regardant vers la mezzanine Elle monte pour entrer dans sa chambre |2|7|41|Ac|Sc|P|
+Ac2|Sc7|P41|JACQUES|Trésor, je me change et j’arrive.||2|7|41|Ac|Sc|P|
+Ac2|Sc7|P42|CORINNE|Une dernière faveur : devant la famille, fais semblant de m’aimer. Qu’ils repartent rassurés.||2|7|42|Ac|Sc|P|
+Ac2|Sc7|P42|JACQUES|Pourquoi « semblant » ? Mais Trésor, je vous aime !||2|7|42|Ac|Sc|P|
+Ac2|Sc7|P42|CORINNE  |Il y a vraiment deux hommes en toi. Mais t’es nettement plus courageux… quand tu fais l’autruche ?|Hésitant à la nommer, sans comprendre  |2|7|42|Ac|Sc|P|
+Ac2|Sc7|P42|JACQUES|L’autruche ?|hochant la tête de son nom, sans comprendre |2|7|42|Ac|Sc|P|
+Ac2|Sc7|P42|CORINNE  |Ben oui ! La tête dans la serviette ! Momie ! |Elle sort |2|7|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Momie ! De toute façon, aujourd’hui, faut plus chercher à comprendre…|montant vers sa chambre |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Mais où tu vas ?|affolée, sortant de sa chambre |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Me changer…|sur le point d’ouvrir la porte |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Non !!! N’entre pas, il va te sauter dessus !||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Qui ça ?||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Le… le pitbull !|affolée |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Le quoi ?!||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Le pitbull. Tu sais, le chien de la Germaine. Elle risque une amende car son pitbull n’est pas stérilisé. Alors elle m’a demandé de le cacher.||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Tu penses que je vais gober une chose pareille ? |Il va pour ouvrir |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Tant pis pour toi, ouvre. Mais je t’aurai prévenu.  Il est méchant, ce pitbull !  Hé, pitbull ! Qu’il est méchant, ce pitbull !  Ah tu vois !|D’une voix forte Frappant sur la porte Aboiements aigus de Michel, le chien |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Ça alors ! Il aboie bizarrement.|impressionné |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Oui… parce qu’il a été castré. Ça, c’est l’aboiement typique du pitbull castré. En plus, celui-là n’attaque que les hommes.||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Mais pourquoi ?!||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Pour se venger de ce qu’il n’a plus.  Couché, Sultan !|Aboiements graves |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Parce qu’en plus il s’appelle Sultan ? Alors là, j’ai la totale. Lucie, tu téléphones immédiatement à la Germaine, qu’elle revienne le…  C’est quoi, ça ?|Voyant les habits de Rolors |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Rien ! Des vieux chiffons pour faire la poussière.  Oh ! Que c’est sale ici ! Que c’est sale ici ! Que c’est sale ici !|Frappant le sol avec |2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|JACQUES|Lucie, c’est comme ça que tu nettoies ?||2|8|42|Ac|Sc|P|
+Ac2|Sc8|P42|LUCIE|Ils l’ont dit à la télé : pour supprimer les acariens, faut les viser à la tête|  Elle frappe le sol |2|8|42|Ac|Sc|P|
+Ac2|Sc9|P42|JEAN|Ah ! Monsieur Lasségué, je vous cherchais à l’auberge !|entrant porte jardin |2|9|42|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Oh non ! Pas lui! Plus lui! Sortez de ma vie! Oh non, j'ai mieux…, entrez plutôt dans ma chambre!|Sadique |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Encore ? Mais je n’ai plus aucune raison de...||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Jacques! Tu n’y penses pas! Il va se faire mordre!||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Vous avez envie de me mordre ?|inquiet |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Dans ma chambre !|autoritaire |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Attends, Jacques, je lui donne d’abord une collation ça va le calmer.|ouvrant le frigo |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Mais je suis très calme. Cela dit, si vous aviez des croque-monsieur...||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Dans ma chambre, le croque-mort !|très autoritaire |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Monsieur Lasségué, je rêve de travailler dans votre agence…||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Lucie, tu montes quoi, là ?|voyant Lucie monter avec une assiette |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Des petits fours.||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Merci, j’adore ça.||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Des petits fours pour un pitbull ?! Et moi, ce soir, j’aurai quoi comme dessert ? Des  croquettes vitaminées ?||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Vous avez un pitbull dans votre chambre?||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Tourille, aujourd’hui, dans ma chambre, grâce à vous, j’ai déjà été pas mal gâté ! Mais  c’est rien comparé à ce que Lucie…   Des carottes pour un pitbull ?! |Voyant déjà dans la main de Lucie des carottes |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Bien sûr, des carottes, ça rend aimable ! Pourvu qu’il aime nature !|montant vers la chambre |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|La robe d’Emmanuelle !  Elle n’est plus dedans !|découvrant la robe d’Emmanuelle près du canapé  |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Vous êtes sûr ? Regardez bien dans l’ourlet.|ironique |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Ça se gâte.  Couché, Sultan ! C’est moi|En entrant dans la chambre de Jacques |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Monsieur Lasségué, où se trouve Emmanuelle ?||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Tourille, je vous propose un marché : chacun gère sa sœur.||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JEAN|Je sais ! La piscine ! D’où votre peignoir...|Lucie ressort de la chambre avec un pile de draps  Aboiements du chien  Il sort par la porte court  Lucie installe ses draps sur la rambarde, cachant des pieds à la taille le trajet qui mène à sa chambre |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Lucie, tu me dégages immédiatement ce chien ou j’appelle la  fourrière.|au bord de l’apoplexie  |2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|LUCIE|Oh non ! Ce serait trop bête qu’il se fasse piquer.||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P43|JACQUES|Elle fait sécher son linge, maintenant !... Je veux partir d’ici ! Mais au moins dans une  tenue décente !||2|9|43|Ac|Sc|P|
+Ac2|Sc9|P44|LUCIE|Chéri, ce pitbull déteste les hommes… S’il te voit, ce sera un carnage.  Au pied ! Oh !oh !... Doucement ! Il a le poiltout hérissé. Si tu voyais les regards qu’il me jette !   Pourquoi elle ne suit pas ? Elle était pendue à son coup…|Après avoir étendu ses draps, elle rouvre la porte de la chambre de Jacques  Elle se penche comme pour tenir un chien par le collierSe retournant |2|9|44|Ac|Sc|P|
+Ac2|Sc9|P44|JACQUES|Mais quoi donc ?||2|9|44|Ac|Sc|P|
+Ac2|Sc9|P44|LUCIE|Euh… sa laisse ! Allez, hop ! dans ma chambre !  Et maintenant, vous, vous restez bien sages !|Elle lui botte les fesses et enferme le chien  Elle ferme la porte |2|9|44|Ac|Sc|P|
+Ac2|Sc9|P44|JACQUES  |Lucie, le chien, tu le vouvoies ?!||2|9|44|Ac|Sc|P|
+Ac2|Sc9|P44|LUCIE|Il est d’origine anglaise… Alors « tu », « vous », il ne fait pas la différence !||2|9|44|Ac|Sc|P|
+Ac2|Sc10|P44|JACQUES|Je me change, mais dès que cette maudite noce sera terminée…  Ah !!! Un jour, mon cœur va lâcher. Tu faisais quoi dans ma chambre, toi ?|montant l’escalier Emmanuelle sort de la chambre |2|10|44|Ac|Sc|P|
+Ac2|Sc10|P44|EMMANUELLE  |Je… bichonnais le pitbull.||2|10|44|Ac|Sc|P|
+Ac2|Sc10|P44|LUCIE|C’est ça, elle le caressait dans le sens du poil…||2|10|44|Ac|Sc|P|
+Ac2|Sc10|P44|JACQUES|Dans cette tenue ?||2|10|44|Ac|Sc|P|
+Ac2|Sc10|P44|LUCIE|Valait mieux : ce genre de bête, ça bave beaucoup.|Aboiements de Rolors |2|10|44|Ac|Sc|P|
+Ac2|Sc10|P44|JACQUES|Lucie, je t’en supplie, fais-le taire !||2|10|44|Ac|Sc|P|
+Ac2|Sc11|P44|LUCIE|Promis, chéri, je vais le neutraliser. |Elle entre dans sa chambre |2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JACQUES|Et toi, vite fait, tu dégages. |Il la fait descendre |2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|EMMANUELLE  |Je me fais des idées ou tu m’aimes moins qu’avant ?||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JACQUES|Emmanuelle, j’ai compartimenté ma vie en cloisons étanches. Si l’une d’elles flanche, je coule ! RhabilIe-toi.||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|EMMANUELLE |Tu permets ? Il m’a donné soif, ton quadrupède… |Elle va à la cuisine|2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JEAN|Elle s’est volatilisée… Emmanuelle ! Où t’étais passée ?!|revenant par la porte cour |2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JACQUES|Dans ma chambre !||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JEAN|Oui, tout de suite. Mais si je me fais mordre ?|montant vers la chambre |2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JACQUES|Non, dans ma chambre, madame pitbullait. Et maintenant, tous les deux, vous disparaissez !||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|EMMANUELLE  |Pas avant que tu n’engages Jean dans ton agence||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|JACQUES|Quoi ? Tu oses me faire du chantage ?||2|11|44|Ac|Sc|P|
+Ac2|Sc11|P44|EMMANUELLE  |Minou, je t’assure, mon frère a des idées géniales…  Pourquoi tu rigoles ?|Rire de Jacques |2|11|44|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Tu me rappelles Lucie quand elle me faisait mousser auprès de mes premiers clients. Qu’est-ce qu’on ferait sans nos sœurs ! Alors, Tourille ?||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Alors quoi ?||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Vos idées de génie, donnez-m’en un échantillon. Et vite.||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Eh bien, à Tahiti, sur la peau des vahinés, je collais des macarons publicitaires.||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Et elles acceptaient, les vahinés ?||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Bien sûr, moyennant finances.||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Et c’était quoi comme pubs ?||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Oh ! des produits locaux ! Je vais vous montrer ce que ça donnait |Il va prendre un paquet de post-it |2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|EMMANUELLE|L’emplacement le plus demandé, donc le plus cher, c’était…|montrant sa poitrine |2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Forcément. Pour une femme, sa poitrine, c’est sa plus belle vitrine. À Papeete, ils en  parlaient encore de mon slogan pour Thonus Plus||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Thonus Plus ? Je sais, c’est un remontant !||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|Non, du thon. Enfin, des miettes de thon. Avec encore plus de miettes Alors, les macarons, je les collais là, et comme slogan j’avais mis…  « L’été, mangez du thon… car c’est l’été-thon ! »|Il pose des post-it sur chaque sein |2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES  |Les tétons ! Vous n’avez peur de rien !||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JEAN|De rien ! Sur les plages de nudistes, vous imaginez le potentiel d’affichage ?||2|11|45|Ac|Sc|P|
+Ac2|Sc11|P45|JACQUES|Ôtez-moi d’un doute… Une pub pour des pots d’échappement, vous la collez où ?|Entrée de Corinne par la porte jardin |2|11|45|Ac|Sc|P|
+Ac2|Sc12|P45|CORINNE  |Jacques, t’es encore en peignoir ?  Je rêve ! Ils sont revenus, eux ?|Voyant Emmanuelle devant la cuisine |2|12|45|Ac|Sc|P|
+Ac2|Sc12|P45|JACQUES|Oui, pour parler campagne de pub…||2|12|45|Ac|Sc|P|
+Ac2|Sc12|P45|EMMANUELLE |Il y avait deux trois clauses qu’on avait oubliées||2|12|45|Ac|Sc|P|
+Ac2|Sc12|P45|CORINNE  |Et c’est pour éviter d’oublier que vous vous collez des post-it ?|Lucie sort de sa chambre et reste devant la porte |2|12|45|Ac|Sc|P|
+Ac2|Sc12|P45|LUCIE|« Tout va très bien, madame la marquise… » Corinne, on va pouvoir retourner à l’auberge.|chantant  Entrée de QQ par la porte jardin, tenant une part de gâteau |2|12|45|Ac|Sc|P|
+Ac2|Sc13|P45|QQ  |Avec QQ, les infos sont bien pointues.||2|13|45|Ac|Sc|P|
+Ac2|Sc13|P45|CORINNE  |Oh ! le fou, maintenant !||2|13|45|Ac|Sc|P|
+Ac2|Sc13|P45|QQ  |J’ai deux nouvelles… mais d’abord j’enlève mes chaussures ?||2|13|45|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Non !!!|TOUS !!!|2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|QQ  |Alors, bonne nouvelle : je vous ai sauvé un morceau de la pièce montée. Mais, entre nous, je trouve les choux trop caramélisés…||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Et c’est pour ça que vous nous dérangez ?||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|QQ  |Et maintenant, mauvaise nouvelle. Que dis-je, mauvaise… Atroce nouvelle ! Le journal vient de m’appeler… Une dépêche de l’AFP… Michel Rolors est mort.||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Quoi ?!|TOUS !!!|2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|QQ  |Son hélicoptère s’est crashé en plein champ. D’après le pilote, Rolors n’a pu se dégager… et il a péri. Caramélisé. Euh… carbonisé !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE|Oh non !!! Dites-moi que ce n’est pas vrai !|chancelante |2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|EMMANUELLE  |Mais bien sûr que ce n’est pas vrai ! N’est-ce pas, Lucie ?||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|LUCIE|On se tait… après un tel drame ! Mais plus tard, après le départ de la presse, on aura peut-être une bonne surprise.||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|QQ  |Madame, il n’y a aucun espoir. Tout a été réduit en cendres.||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|En cendres !!! Ça continue !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|QQ  |On n’a retrouvé que quelques ossements.||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|LUCIE|Mon Dieu, les deux moutons !|larmoyante |2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Mon Michel ! Je n’en reviens pas !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE  |Si ça se trouve, en ce moment, il nous entend…||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|LUCIE|Certainement ! Et de là-haut, il doit regretter d’avoir été si méchant…||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Et dire qu’il était encore là il y a une heure !  Si enthousiaste…  « t, h»… que je m’occupe de sa campagne électorale !  Couché !!!|Dictant à QQ qui prend note  Aboiements de Rolors |2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE  |C’est quoi, ça ?|Aboiements de Rolors…|2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|La Germaine !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE  |La Germaine ? Elle aboie, maintenant ? Oh ! j’ai mal !!!||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Je comprends. Cette disparition est très douloureuse !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE  |Non, le choc nerveux… m’a déclenché une contraction… et je sens déjà la suivante qui se prépare…||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Ça veut dire quoi ?||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|LUCIE|Que ta femme va accoucher !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|JACQUES|Oh non ! Pitié ! Pas tous les bonheurs le même jour !!! Trésor, retenez-vous ! D’après votre gynéco, c’est pour dans deux semaines, le compte à rebours.||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|LUCIE|Le compte à rebours ? Ta femme s’appelle Corinne, pas Ariane !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P46|CORINNE |Ouille ouille ouille… Ça s’accélère !||2|13|46|Ac|Sc|P|
+Ac2|Sc13|P47|JACQUES|Eh bien, ralentissez ! Qu’est-ce qu’on peut faire ? Un cataplasme ?||2|13|47|Ac|Sc|P|
+Ac2|Sc13|P47|LUCIE|Un cataplasme ? Pourquoi pas des ventouses ?!||2|13|47|Ac|Sc|P|
+Ac2|Sc14|P47|JEAN|Monsieur Lasségué, madame, les Tahitiennes ont un truc infaillible pour empêcher un bébé de sortir avant terme.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|Eh bien, dites-le, c’est le moment ou jamais!||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JEAN|Elles font le poirier.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE|Le poirier ?||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JEAN|Oui, avec la tête en bas et les jambes en l’air…  Pour le bébé, c’est pas évident de se hisser jusqu’à la sortie. Et si vous fermez les volets, il n’est pas attiré par la lumière. Et …|Mimant la position imaginaire d’un bébé vers le haut |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|Et …à la fin de votre vie, quand vous récapitulerez vos plus grosses conneries, celles-ci seront dans le tiercé gagnant !||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|LUCIE|Mais partez pour la clinique, il n’y a pas une seconde à perdre !||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE|Et nos invités ?|douloureuse |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|Ils n’ont qu’à attendre à l’auberge.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|LUCIE|Comme ça ils seront déjà sur place pour le baptême.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE|Va d’abord chercher la valise du bébé !|douloureuse |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|La valise du bébé ! Comme si, en naissant, il allait la réclamer ! « Où qu’elle est, ma valise ? »||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|LUCIE|Et ma valise ?||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE  |Jacques on ne contrarie pas une femme enceinte!||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|Alors ça, c’est le genre de phrase qui vous dissuade à jamais de refaire des enfants. |montant l’escalier Il entre dans sa chambre |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE|Oooh ! Et Michel qui est mort !|gémissante |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|LUCIE|Mais non ! Pensez à des choses joyeuses. C’est très important pour l’épanouissement futur du bébé. J’ai lu ça sur Internet. Placenta point com…||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE  |Ah !!! Pour ma fille, j’hésite encore entre deux prénoms : Cunégonde ou Pélagie. Vous choisiriez lequel ?||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|EMMANUELLE |Je n’en vois pas un qui soit moins bien que l’autre…||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JEAN|Personnellement, j’attendrais que votre bébé sache parler, qu’il choisisse lui-même.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE  |Oooh !!! Ces contractions…||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|LUCIE|Eh ben, voilà, faisons une contraction des deux prénoms. Cunégonde… Pélagie… Ça sonne bien, « Pélagonde » !||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|JACQUES|Mais d’où vous exhumez des prénoms aussi tartignolles?|sortant de la chambre avec une valise |2|14|47|Ac|Sc|P|
+Ac2|Sc14|P47|CORINNE  |Du calendrier des postes.||2|14|47|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Eh bien, qu'ils se pointent à la fin de l'année, les postiers… et qu'ils osent me demander des étrennes. Allez ! En route, maman !||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |Aaah ! Pas « maman » ! Ça, c’est encore plus mal que les contractions !||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|LUCIE|Appeler sa femme « maman » ! Ça, c'est un vrai motif de divorce.||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Bon, alors, on y va ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |Non, non, t’es trop nerveux. Au premier coup de frein, j’accoucherai dans la boîte à gants. Appelle une ambulance !||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|LUCIE|Emmanuelle, aidez-moi à monter la pauvre choute dans sa chambre…||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |Et si mon gynéco ne rapplique pas. Tu vois que j’ai bien fait de l’inviter au mariage ! Bon, alors, tu lui téléphones ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|C’est stupide, on va perdre un temps fou ! |Il décroche le téléphone  Corinne entre avec Emmanuelle dans sa chambre |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|LUCIE|Je vais chercher mon manuel de secourisme.  Surtout, pensez à des choses joyeuses !  Au pied, Sultan !|Vers Corinne Entraînant dans sa chambre |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Tourille, vous êtes célibataire ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JEAN|Oui. Pourquoi ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Per-sé-vé-rez. Mais pourquoi il ne décroche pas, cet ambulancier ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|LUCIE|On est sauvés, j’ai retrouvé mon manuel de secourisme. Alors… « piqûres d’insectes », c’est pas ça… « Boursouflures», on s’en rapproche…|sortant de sa chambre |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |Oh !!!|Corinne, off, depuis sa chambre |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|LUCIE|Une seconde, ma pauvre choute, je me documente…||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE|Je veux accoucher dans la piscine !|Corinne, sortant de sa chambre |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Quoi ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |J’ai envie d’un bébé nageur… C’est trop craquant le sourire béat d’un bébé qui nage…||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Et après, je le récupère comment ? À l’épuisette ?||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JEAN|Si je peux me permettre, il y a un proverbe tahitien qui dit : « Si le cordon n’est pas coupé, le bébé n’ira pas loin. » |Il mime le bébé au bout du cordon |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|JACQUES|Vous permettez que je demande son avis au gynéco ?  Allô ! L’Auberge du Cheval-Blanc ? Il y a un de ces raffuts…  Comment ? Mais je sais bien que vous avez un mariage ! C’est le mien !!! Passez-moi le Dr Garoust…|Au téléphone Hurlant |2|14|48|Ac|Sc|P|
+Ac2|Sc14|P48|CORINNE  |Mais va le chercher toi-même, ça ira plus vite ! Faut tout lui dire…||2|14|48|Ac|Sc|P|
+Ac2|Sc14|P49|LUCIE|Et vous, restez allongée.|Les femmes entrent dans la chambre de Corinne |2|14|49|Ac|Sc|P|
+Ac2|Sc15|P49|JACQUES|Quelle journée ! Mais quelle journée ! Allô, le Cheval-Blanc ?!  |Il raccorche |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JEAN|Le cheval blanc ! Henri IV ! Des pubs avec des personnages historiques…  Monsieur Lasségué, attendez-moi…|Suivant Jacques qui sort par la porte jardin |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|QQ  |Si avec tout ça je n’obtiens pas le prix Pulitzer…  Ah ! ça déménageait… Bonjour la casse… Même sur du gazon, il a mis de la moquette… Ah ! oui mais là, c’est un practice de golf…|Ah ! il piétine la moquette avec rage  Il passe de la chambre de Lucie à celle de Corinne  Il sort en bas, et en même temps, Jacques en surveillant la chambre de Corinne et en se massant le pied, il descend l’escalier  Il regarde la porte du jardin |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|CORINNE|Oooooh !|off |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|LUCIE|Joyeuses ! Pensez à des choses joyeuses !|off  |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|MICHEL|Mais il est où, ce maudit appareil photo ?|entrant, vers Corinne |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|LUCIE|Tenez, pensez à Clarisse. Elle s’est tellement fait tirer la peau qu’elle a les pieds à vif. Ma porte !!! Qui a ouvert ma porte ?! |Il sort, de l’autre côté, vers Corinne Elle entre dans sa chambre  Résigné, Michel va pour sortir par la porte jardin… mais off jardin, on entend :|2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JACQUES|Alors ça… Alors ça, c’est l’apothéose !  Le gynéco, complétement pété, debout sur les tables qui se prend pour un Chippendale ! J’ai un de ces mal de tête…|off, à la cantonade Bloqué de toute part, Michel se plaque contre son affiche, se superposant parfaitement dans la même pose et devenant invisible aux yeux des autres  Retour de Jacques par la porte jardin, suivi de Jean |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|CORINNE|Ooooh ! J’ai mal !|off |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JACQUES|Moi aussi, j’ai mal, mais je ne crie pas…|à la cantonade |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JEAN|Mal à la tête… Il y a une pub historique à trouver avec ça ! Tête… Louis XVI ! Louis XVI sur l’échafaud, avalant une aspirine. Glurp ! Une fois décapité, gros plan sur sa bouche en train de murmurer : « Je sens plus ma tête, merci Dolicrâne. »||2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|LUCIE|Jacques le pitbull s’est échappé !!!|ressortant de sa chambre  Personne ne va remarquer Michel juxtaposé sur son affiche  Emmanuelle sort de la chambre |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|EMMANUELLE  |Mais remuez-vous, enfin ! Elle perd les eaux ! |Elle entre dans la salle de bains |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JACQUES|Elle perd les eaux ? Les pompiers ! Ils sont imbattables en cas d’inondation. |Il compose un numéro de téléphone |2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|LUCIE|Vous n’avez pas vu sortir quelqu’un ?||2|15|49|Ac|Sc|P|
+Ac2|Sc15|P49|JEAN|Hein ?||2|15|49|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Enfin, une bête ?||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES, QQ, JEAN, MICHEL|Non !|sans en voir une des autres |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Ça alors ! Où est-il passé ? Vous n'avez pas vu Mirza ?||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Les pompiers ? C'est Jacques Lasségué… Venez vite, ma femme est sur le point d’accoucher. Vous connaissez mon adresse ? Parfait.  Tenez bon, trésor, les pompiers arrivent !|Il raccroche  Emmanuelle sort de la salle de bains avec des serviettes et retourne dans la chambre  Retour de Lucie par la porte jardin  Vers Corinne |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|CORINNE|Ooooh ! J’ai mal !|off, depuis sa chambre |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Joyeuse… Joyeuse… Faites ce que vous avez appris : la respiration du petit chien. Cherchant. Mais où il est passé, ce clebs ?|vers Corinne |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|CORINNE|Jacques le bébé descend !!!|off, depuis sa chambre |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Le bébé descend ! Monte, toi !|à Jacques Le bébé descend ! Monte, toi !|2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Je ne peux pas, je suis sonné comme un boxeur incapable de remonter sur le ring…||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Ça, c’est bien les hommes ! En cas de coup dur, y a plus personne. Et c’est nous, soi-disant, le sexe faible ? Encore une appellation non contrôlée ! |Elle entre dans la chambre de Corinne |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|Emmanuelle, viens vite faire chauffer un biberon.|Emmanuelle sort de la chambre et descend à la cuisine  Jean se met un tablier autour de la taille |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Tourille, qu’est-ce que vous faites ?|dans la panique |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|Je vais aider votre femme au cas où elle accouche…||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Vous ? Mais vous avez quoi comme formation ?||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|Club Med plus dix.||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Pardon ?||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|J’ai été G.O. pendant dix ans.||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|EMMANUELLE  |Une fois, au large de Bora Bora, il a aidé une GM à accoucher…||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JACQUES|Pourquoi il met des gants ?!|voyant Jean enfiler des gants de ménage |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|Par hygiène, je me caoutchoute ! |Il monte vers la chambre de Corinne |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|CORINNE| Oooooh !!!| off, depuis sa chambre Lucie sort de la chambre |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Faudrait un pochon de glaçons…  Non mais vous croyez que c’est le moment de faire le ménage ?!|Voyant Jean |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|JEAN|N’ayez pas peur, madame, je vais vous assister.|rejoignant Corinne  |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|CORINNE|Oh non ! Pas avec des gants de vaisselle !!!|off |2|15|50|Ac|Sc|P|
+Ac2|Sc15|P50|LUCIE|Jacques réagis, enfin ! N’abandonne pas Corinne au corbeau. Il va lui faire faire le poirier !||2|15|50|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Ce matin, mon horoscope pronostiquait : "journée riche en surprises"... Franchement, je ne m’attendais pas à tant. Ils m’ont gâté, là-haut !|grandiloquent|2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|CORINNE|Oh oh oh oh oh !|off, hurlant de rire |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|LUCIE|Elle rigole ! Ça, c’est inquiétant !  Pas trop joyeuse ! Pas trop joyeuse !|En entrant dans la chambre de Corinne|2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Tourille, qu’est-ce qui se passe ?||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JEAN|Je ne peux pas lui toucher le ventre, elle est chatouilleuse ! |Il retourne dans la chambre |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Trésor, faites un effort... Un accouchement, ça n’a jamais été drôle !||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|LUCIE|Jacques, on aperçoit ses premiers cheveux. Elle est toute bouclée. Si tu veux assister à la naissance, c’est maintenant.|passant la tête |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Non, non, je préfère assurer en ne bougeant pas.|Lucie entre dans la chambre|2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JEAN|Allez, madame, on retient... et on pusse !!! On pousse !!!|off |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|CORINNE|Oooooooooooooooooh !|off  Emmanuelle, QG et Michel sans se faire remarquer se tournent vers la chambre  Jacques est assis sur le canapé  Tous suivent les fluctuations du cri  Leurs soubresauts s’accélèrent avec les cris  À la fin du cri, Michel se statufie |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Là, on l’a bien entendue l’absence de péridurale !||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|EMMANUELLE|Je m’en souviendrai, de ton mariage.|cri de bébé tonitruant !|2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|LUCIE|C’est un bon quatre kilos ! Jacques, toi, quand tu mets la petite graine, tu ne mégotes pas ! Le corbeau a été sublime ! |sortant de la chambre Elle redisparaît |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|EMMANUELLE  |Félicitations, papa ! Et chapeau au somnambule pour sa petite graine !||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JEAN|C’est incroyable !!!|sortant de la chambre |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Quoi ?||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JEAN|Y a un deuxième bébé qui se pointe ! |Il rentre dans la chambre |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|Hein ?!||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JEAN|Non, je déconne.  Je m’en suis pas mal sorti, mon Jacquot ?|ressortant de la chambre Descendant |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|"Mon Jacquot" ? Dites donc, on n’a pas gardé les cochons ensemble ! Alors, comment elle est, ma fille ?||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|LUCIE|C’est un garçon !|sortant de la chambre de Corinne |2|15|51|Ac|Sc|P|
+Ac2|Sc15|P51|JACQUES|T’es sûre ?||2|15|51|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|J'ai tout compté, il ne lui manque rien. Et puis, il est bien de son époque. Il rime sacadé, il fait déjà du rap !||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|JACQUES|Un garçon ! Il est sauvé, il ne s'appellera pas Pélagonde !|éclatant de rire |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|Il est né divin enfant. Chantons tous son a... Aaaaaaah !|chantonnant  Elle voit Michel sur son affiche  Il lui fait «chut » avec un doigt sur la bouche avant de reprendre la position  Elle est très contente |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|JACQUES|Lucie qu’est-ce qui te prend ?||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|Là… là… .  « La la la la ... ! Il est toujours là là là ! Il est toujours là là là... . Quand il y a une bonne bonne nouvelle, ça redonne du chien. Jacques, va donc embrasser la chair de ta chair.|Transformant un cri en un chantonnant |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|JACQUES|Je vais essayer... mais j’ai les guibolles molles... Il monte.||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|EMMANUELLE|Faudrait peut-être donner un biberon au bébé.||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|Vous avez raison, ça s’arrose !||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|JACQUES|Ah oui ! C’est bien un garçon …|restant sur le seuil de la chambre |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|T’as vu comme il te ressemble ?||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|JACQUES|Je ne me voyais pas aussi fripé.||2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|Ce que je m’amuse ! J’ai l’impression de me trouver au musée Grévin. Et si vous alliez tous à l’auberge annoncer la bonne nouvelle ?|regardant discrètement Michel statufié |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|CORINNE|Et Michel qui est mort !!!|off, désespérée |2|15|52|Ac|Sc|P|
+Ac2|Sc15|P52|LUCIE|Je vais vous remonter le moral.|entrant dans la chambre avec le biberon |2|15|52|Ac|Sc|P|
+Ac2|Sc16|P52|QQ  |Monsieur Lasségué, un mot pour conclure mon article ?||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|JACQUES|Dans la même journée, j’ai enchaîné mariage, deuil et naissance. Au tiercé, on appelle ça l’avoir dans le désordre. Fermez les guillemets. Quant à ce pauvre Rolors...  C’est incroyable, cette affiche... On dirait qu’il va parler...|dictant à QQ Regardant l’affiche  Corinne sort de sa chambre en peignoir, tenant un bébé emmitouflé |2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|CORINNE  |Jacques…||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|JACQUES|Trésor, c’est de la folie... Restez couchée, voyons !||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|CORINNE  |Mais je suis solide ! Mon arrière-grand-mère était cheyenne, elle accouchait debout...||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|JACQUES|C’est sans doute pour ça que les Indiens ont disparu !||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|CORINNE  |Jacques devant tous, tu pourrais jurer que tu m’as toujours été fidèle ?||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|JACQUES|Mais... sans hésiter ! Tenez, que Lucie aille en enfer si...||2|16|52|Ac|Sc|P|
+Ac2|Sc16|P52|LUCIE|Oh ! t’es gentil, tu me laisses aller où je veux ! |Elle apporte un siège à Corinne |2|16|52|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE|Jacques, chez les hommes infidèles, il n'y a que les regards qui ne comptent pas. Lucie m'a tout avoué pour Emmanuelle.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Mais de quoi elle se mêle ?! Trésor, maintenant que je suis père de famille, cette femme ne compte plus, c'était un gadget.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|EMMANUELLE  |Le mot est bien choisi T'en as beaucoup d'autres comme ça ?||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|LUCIE|Tout ça, c'est ma faute. Je l'ai poussé au mariage, et il n'était pas prêt.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE  |Voilà pourquoi il vaut mieux divorcer. On va gagner beaucoup de temps. Et s'épargner beaucoup de haine.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Si c'est vous qui insistez… QQ, marquez-le bien dans le journal : je n’ai été marié qu’une heure et demie. Et en conclusion : « il s'en sort pas trop mal. »||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE |Tu pourras même dire que t'as été un mari fidèle... Tu te rends compte ?||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Et le bébé ? Vous le laisserez quand même voir son père ?||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE  |Bien sûr... Dès que son père l'aura reconnu.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Mais je compte bien le reconnaître, ce petit ange !||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE  |Tu n'as rien à voir là-dedans. Je te parle de son vrai père.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Comment ça, son vrai père ?||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|CORINNE|Son père, génétiquement parlant, c'est... Michel Rolors !||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Quoi !?|TOUS sauf Michel  Michel, effondré, se laisse glisser le long de son affiche souriante avant de se resaisir et reprendre sa pose |2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|LUCIE|Alors là, je suis scotchée !|voyant Michel s'effondrer, en regardant l'affiche   |2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|QQ|Y'a matière, y'a de la matière !|exalté |2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|JACQUES|Ah non ! Non, non, vous dites ça pour vous venger. C'est trop facile de faire porter le chapeau à un mort.||2|16|53|Ac|Sc|P|
+Ac2|Sc16|P53|LUCIE|Jacques, Michel est bien vivant...  Et il est là !!!|Montrant l'affiche  Michel se retourne face au mur, se calquant sur sa photo  On le voit donc de dos |2|16|53|Ac|Sc|P|
+Ac2|Sc17|P53|JACQUES|Comment ça, là ?  Mais qui a retourné mon affiche ?! Et ce costume, c'est le mien ! |Regardant l'affiche Il touche la jambe de Michel |2|17|53|Ac|Sc|P|
+Ac2|Sc17|P53|MICHEL|Rrrrrrraou !|Michel, aboyant très fort en se retournant |2|17|53|Ac|Sc|P|
+Ac2|Sc17|P53|JACQUES|Aaah !!!|TOUS ! Sursautant, effrayés |2|17|53|Ac|Sc|P|
+Ac2|Sc17|P53|JACQUES|Deux résurrections le même jour, c'est pas humain ! Même Jésus ne l'a pas fait !  Bloquez les issues !  Alors toi, le pitbull, je vais te massacrer !|chancelant   Michel tente de s’enfuir QQ et Jean bloquent les portes |2|17|53|Ac|Sc|P|
+Ac2|Sc17|P53|LUCIE|Jacques, tu ne vas pas frapper le père de ton fils!||2|17|53|Ac|Sc|P|
+Ac2|Sc17|P53|MICHEL  |Calme-toi, n'oublie pas que j’ai un destin national !||2|17|53|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Aaah ! J'ai une crampe dans le mollet. Et moi qui me croyais somnambule ! C'est insensé, ce bébé me ressemble !|s'arrêtant brusquement |2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|CORINNE  |Michel a dû le faire en pensant à toi !||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Coco, comment t’as pu faire ça ?!||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|MICHEL  |Un jour que t'étais pas là…||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Je te remercie, c'est délicat ! Mais comment t’as pu…||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|MICHEL  |Je suis présidentiable. Si ça s’ébruite, je suis foutu…||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Tu plaisantes !||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|LUCIE|Un enfant naturel, c’est le premier critère d’un grand chef d’État.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|T’aurais pu divorcer de ta femme !||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|MICHEL  |Avant une élection ? C’est le meilleur moyen de la perdre. L'élection. En plus, j’ai sept enfants… et Clarisse est en attente d’un huitième !||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|LUCIE|Là, c’est plus un chien, c’est un lapin ! |À Jacques|2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Mais vous, Corinne, pourquoi m’avoir obligé à vous épouser ?||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|CORINNE  |Pour ma famille. Un enfant hors mariage, mes parents m’auraient déshéritée. Et ça, c’était au-dessus de mes moyens.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|LUCIE|Pauvre choute ! C’est du Zola !  Michel !!!|Narguant Michel avec l’appareil photo |2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|MICHEL  |Ah oui ! Jacques, je te supplie de retravailler avec moi.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Ça alors… La phrase que je rêvais d’entendre !|stupéfait |2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|MICHEL  |Lucie, donnez-moi ces photos !||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Mais c’est quoi ces photos ?||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|LUCIE|Une broutille, mon chéri. Juste Emmanuelle et Michel enlacés sur ton lit.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Aaah ! J’ai une crampe dans le mollet ! Dans le même, en plus. Les pompiers ! On est sauvés !|! Sirène de pompiers |2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|CORINNE  |Sacré Jacques ! Au début, j’ai vraiment cru que tu serais l’homme de ma vie… mais j’ai vite compris que tu seras toujours l’homme de ta vie.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|LUCIE|Mon Jacques c’est un soleil, c’est aux autres de se tourner vers lui.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Eh ben, tourne-toi, toi! Je vous accompagne jusqu’à la clinique.|à QQ qui ne le regarde pas ! À Corinne |2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|CORINNE  |Mais avant, j’aimerais passer à l’auberge pour présenter le bébé à toute la famille.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P54|JACQUES|Alors là, j’aurai du mal à encaisser les félicitations.||2|17|54|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE, |Et l’autre, là, qui ne bouge pas d’un iota. Comme si son son fils allait le dénoncer. C’est fascinant, la lâcheté masculine !|désignant Michel |2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|LUCIE  |La lâcheté masculine ? Si elle était cotée en Bourse, elle battrait tous les records de plus-value.||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE|Allez, dis au revoir à la dame !|prenant le bébé à Emmanuelle |2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|EMMANUELLE|C’est vrai, je peux ? Oh ! Merci, madame ! Je rêve d’avoir un bébé, moi aussi…||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE |Profitez-en. Aujourd’hui, vous avez le choix. C’est jour de marché !||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|QQ|Et moi, pourquoi je serais puni ?|voulant lui aussi le bébé |2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE  |Mais pourquoi vous dites ça ? Regardez, QQ !||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|QQ  |Je suis bouleversé! Permettez-moi d’offrir un cadeau à votre bébé…||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE  |C’est gentil ! C’est quoi ?||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|QQ  |Mon porte-bonheur…  Ma première paire de chaussures !  Bon, elles sont un peu trouées…|Il sort de sa poche deux chaussures de bébé avec des trous Gêné |2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE  |C'est pas grave, j'irai chez le coordonnier!  Merci encore pour tout, monsieur l’aspirateur.|à Jean|2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|JEAN|Mais madame, tout le bonheur a été pour moi. Grâce à vous, j’ai pu imiter les politiciens. J’ai coupé un cordon, mais là, c’était pour inaugurer une vie !||2|17|55|Ac|Sc|P|
+Ac2|Sc17|P55|CORINNE|Tu me donneras de tes nouvelles ? Tu perds une épouse, mais tu retrouves une amie. Tu y gagnes au change, heureux célibataire !  Au revoir, la duègne ! Lucie, là, vous auriez pu chanter : « Elle a fait un bébé toute seule… »|à Jacques  |2|17|55|Ac|Sc|P|
+Ac2|Sc18|P55|JACQUES|QQ, la valise du bébé ! Mais comment qu’il sort, lui ?||2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|QQ|Ça y est, ça le reprend ! Pardon moquette, pardon paillasson, pardon limaçon… |prenant la valise du bébé et en sortant Il sort en fermant la porte du jardin |2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|LUCIE|Et un problème de réglé ! Un !||2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|MICHEL|Jacques on efface tout et on recommence ?|tendant la main à Jacques  |2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|LUCIE|Oh ! il fait le beau ! Il donne la papatte !|comme à un chien |2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|JACQUES|Les politiciens, c’est comme les chiens : il ne leur manque que la parole.||2|18|55|Ac|Sc|P|
+Ac2|Sc18|P55|MICHEL|Je sais, je me suis mal comporté. Mais là, coco, c’est au grand professionnel que je m’adresse. Toi et moi, on peut casser la baraque…||2|18|55|Ac|Sc|P|
+Ac2|Sc18|P56|JACQUES|Casser, pas démolir. Un homme qui trahit son meilleur ami à toutes les chances de trahir son pays. Et je ne cautionnerai jamais un produit auquel je ne crois plus. Adieu, coco, je suis très minutés.|Michel sort en hurlant à la mort, tel un chien : « Houuuuu ! »|2|18|56|Ac|Sc|P|
+Ac2|Sc19|P56|LUCIE|Et de deux ! Allez, Jacques maintenant au tour de la cocotte !||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|EMMANUELLE|Cocotte, gadjet… J’ai bien fait de venir !||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|JACQUES|Gadjet c’est pas péjoratif, c’est synonyme de nouveauté. Et c’est fou tout ce que tu m’as apporté. Ne me sacrifie pas tes plus belles années, tu mérites mieux que ça.||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|LUCIE |Jacques tu m’inquiètes. Tu me ferais t’y pas une poussée de maturité ?||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|EMMANUELLE  |Minou, fais-moi un enfant. Ça changerait ma vie.||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|JACQUES|Et ça changerait aussi la mienne. Très peu pour moi !||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|EMMANUELLE  |Ça veut dire quoi, en clair ?||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|LUCIE|Vieux garçon ou vieille fille, une fois qu’on a pris le pli, on est indéfroissable !||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|JACQUES|Allez, sauve-toi ! Je te regrette déjà.||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|EMMANUELLE  |Un dernier pour la route ?||2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|JACQUES|Un dernier pour la route ! |Ils s’embrassent. Jacques reprend sa respiration.|2|19|56|Ac|Sc|P|
+Ac2|Sc19|P56|EMMANUELLE|Monsieur Michel, je peux vous déposer ? J’ai ma voiture…|à la cantonade, se sortant par la porte jardin |2|19|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|« Monsieur Michel » ? Dans neuf mois, elle accouche !||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|Et de trois ! Au tour du corbeau ! Dehors, Tourille… Et rendez-vous lundi matin à huit heures !||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JEAN|Vous m’engagez ? Patron, à vos côtés, je vais me défoncer comme un fu ! Euh… comme un fou !  Un dernier pour la route ? Non, je déconne ! |imitant sa sœur Il sort porte jardin |2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|Mon Jacquot, je t’ai enfin à moi toute seule. Qu’est-ce qu’on dit ?||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|Oh ! C’est chouette.|peu convaincu |2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|Oh ! Ton cadeau de mariage ! Avec tout ça, j’avais oublié…||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|C’est quoi ?||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|Je te préviens, ça va te surprendre !|lui donnant un petit paquet |2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|Aujourd’hui, plus rien ne peut me surprendre. Des photos ?!||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|Évidemment, elles sont un peu jaunies…||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|Oh… mais cette jeune fille, là… c’est toi ? T’avais quel âge ?||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|Et me voilà quelques mois plus tard…|montrant une autre photo |2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|JACQUES|Mais… Mais là-dessus, on dirait que… t’es enceinte ?!||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P56|LUCIE|J’étais quasiment à terme !||2|20|56|Ac|Sc|P|
+Ac2|Sc20|P57|JACQUES|Hein ? Mais t’avais à peine…||2|20|57|Ac|Sc|P|
+Ac2|Sc20|P57|LUCIE|À peine. Et encore !||2|20|57|Ac|Sc|P|
+Ac2|Sc20|P57|JACQUES|Alors ça… Ça, c’est la nouvelle la plus ahurissante de la journée! Lucie, enceinte?! Pourquoi tu ne l’as pas gardé, cet enfant?||2|20|57|Ac|Sc|P|
+Ac2|Sc20|P57|LUCIE|Mais bien sûr que si, je l’ai gardé !||2|20|57|Ac|Sc|P|
+Ac2|Sc20|P57|JACQUES|Quoi ?! Et pendant toutes ces années, tu me l’as caché ? Mais alors il est où, cet enfant ?  Oh non ! J’ai la tête qui va exploser !!! Mais alors… ma mère… c'est toi! Maman !!!|Lucie le regarde fixement |2|20|57|Ac|Sc|P|
+Ac2|Sc20|P57|LUCIE|Mon petit ! …||2|20|57|Ac|Sc|P|
+`;
+
+// Parsing texte intégré
+function parseTexte(text) {
+    const lines = text.trim().split(/\r?\n/);
+    aTabTexte = [];
+    lines.forEach(line => {
+        const cols = line.split("|");
+        if(cols.length < 6) return;
+        aTabTexte.push({
+            Acte: cols[0].trim(),
+            Scene: cols[1].trim(),
+            Page: cols[2].trim(),
+            Personnage: cols[3].trim(),
+            Texte: cols[4].trim(),
+            Didascalie: cols[5].trim(),
+            Juste: false
+        });
+    });
+}
+
+// Initialisation du menu des personnages
+function initPersonnages() {
+    const persoSelect = document.getElementById("personnageSelect");
+    persoSelect.innerHTML = "";
+    personnages.forEach(p => {
+        const option = document.createElement("option");
+        option.value = p;
+        option.textContent = p;
+        persoSelect.appendChild(option);
+    });
+    persoSelect.value = personnage;
+}
+
+// Fonctions principales
+function NbDeReplicPersonnage(perso) { return aTabTexte.filter(r => r.Personnage === perso).length; }
+function NbQuestionOK(perso) { return aTabTexte.filter(r => r.Personnage === perso && r.Juste === true).length; }
+function updateRepliqueCounter() {
+    const total = NbDeReplicPersonnage(personnage);
+    const ok = NbQuestionOK(personnage);
+    const ligne = aTabTexte[iRow] || {};
+    document.getElementById("repliqueCounter").textContent = 
+        `Réplique n° ${iRow !== null ? iRow+1 : 0} / ${total} | ${ligne.Acte || ''} | ${ligne.Scene || ''} | ${ligne.Page || ''} | Déjà répondues : ${ok}`;
+}
+function highlightJuste() {
+    const reponseDiv = document.getElementById("reponse");
+    if(iRow !== null && aTabTexte[iRow].Juste) reponseDiv.classList.add("justHighlight");
+    else reponseDiv.classList.remove("justHighlight");
+}
+function TireAuSort() {
+    const indices = [];
+    aTabTexte.forEach((r, idx) => {
+        if (r.Personnage === personnage && r.Juste !== true) indices.push(idx);
+    });
+    if (indices.length === 0) {
+        alert("Toutes les questions ont été posées au moins une fois.");
+        aTabTexte.forEach(r => r.Juste = false);
+        return TireAuSort();
+    }
+    const rnd = Math.floor(Math.random() * indices.length);
+    iRow = indices[rnd];
+    const ligne = aTabTexte[iRow];
+    document.getElementById("didascalie").textContent = ligne.Didascalie || "";
+    const prev = aTabTexte[iRow - 1] || {Personnage:"", Texte:""};
+    document.getElementById("question").textContent = `${prev.Personnage} DIT : ${prev.Texte || ""}`;
+    const reponseDiv = document.getElementById("reponse");
+    reponseDiv.textContent = ligne.Texte || "";
+    reponseDiv.style.display = "none";
+    highlightJuste();
+    updateRepliqueCounter();
+}
+function NouvelleQuestion() { if(aTabTexte.length === 0) return; TireAuSort(); }
+
+function setupButtons() {
+    document.getElementById("voirBtn").addEventListener("click", () => { document.getElementById("reponse").style.display = "block"; });
+    document.getElementById("cacherBtn").addEventListener("click", () => { document.getElementById("reponse").style.display = "none"; });
+    document.getElementById("questionBtn").addEventListener("click", NouvelleQuestion);
+    document.getElementById("justeBtn").addEventListener("click", () => {
+        if (iRow !== null) { aTabTexte[iRow].Juste = true; highlightJuste(); NouvelleQuestion(); }
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+        aTabTexte = JSON.parse(JSON.stringify(aTabTexteBck));
+        highlightJuste();
+        NouvelleQuestion();
+    });
+    document.getElementById("personnageSelect").addEventListener("change", () => {
+        personnage = document.getElementById("personnageSelect").value;
+        NouvelleQuestion();
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    parseTexte(texteComplet);
+    aTabTexteBck = JSON.parse(JSON.stringify(aTabTexte));
+    initPersonnages();
+    setupButtons();
+    NouvelleQuestion();
+});
+</script>
+
+</body>
+</html>
