@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jeu des Répliques</title>
+<title>Jeu des Répliques - V 1.10</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
   select, button { font-size: 1em; margin: 4px; padding: 6px 10px; }
@@ -15,6 +15,7 @@
   }
   #reponse { display: none; background: #e8f7ff; }
   .justHighlight { background: #b0f0b0 !important; }
+  #didascalie { font-style: italic; } /* Didascalie en italique */
 </style>
 </head>
 <body>
@@ -44,6 +45,7 @@ let aTabTexte = [];
 let aTabTexteBck = [];
 let personnage = "JACQUES";
 let iRow = null;
+let nbQuestionsPosees = 0; // compteur global
 
 // === Texte complet intégré directement ===
 const texteComplet = `
@@ -811,7 +813,7 @@ Ac2|Sc7|P41|JACQUES|T’en loupes pas une… Pourquoi tu m’as poussé ?||2|7|4
 Ac2|Sc7|P41|LUCIE|Je ne t’ai pas poussé, j’ai buté contre une dalle. T’avais qu’à éviter d’être près du bord de la piscine ! Mais en plein soleil ton habit très vite… |Elle lui met la serviette sur la tête  Il ressemble à Michel précédemment |2|7|41|Ac|Sc|P|
 Ac2|Sc7|P41|JACQUES|Et l’autre à la robe, là, qui a disparu… C’est toi, là-haut ?|Jacques se frottant la tête Corinne sort de la salle de bains en grognant  |2|7|41|Ac|Sc|P|
 Ac2|Sc7|P41|LUCIE|Ah !!! ||2|7|41|Ac|Sc|P|
-|||JACQUES|Qu’est-ce que c’est ces manières de se déshabiller?||||||||
+Ac2|Sc7|P41|JACQUES|Qu’est-ce que c’est ces manières de se déshabiller?||2|7|41|Ac|Sc|P|
 Ac2|Sc7|P41|CORINNE|Ah ! enfin, tu fais ton mea culpa ?||2|7|41|Ac|Sc|P|
 Ac2|Sc7|P41|JACQUES  |Oh !!! Trésor, c’était vous ?|voyant Corinne|2|7|41|Ac|Sc|P|
 Ac2|Sc7|P41|CORINNE|Eh oui ! Souriante quoi qu’il arrive. Je comprends ta surprise.  Enlève ce peignoir. Je t’ai déjà demandé…|Descendant|2|7|41|Ac|Sc|P|
@@ -1188,99 +1190,132 @@ Ac2|Sc20|P57|LUCIE|Mon petit ! …||2|20|57|Ac|Sc|P|
 
 // Parsing texte intégré
 function parseTexte(text) {
-    const lines = text.trim().split(/\r?\n/);
-    aTabTexte = [];
-    lines.forEach(line => {
-        const cols = line.split("|");
-        if(cols.length < 6) return;
-        aTabTexte.push({
-            Acte: cols[0].trim(),
-            Scene: cols[1].trim(),
-            Page: cols[2].trim(),
-            Personnage: cols[3].trim(),
-            Texte: cols[4].trim(),
-            Didascalie: cols[5].trim(),
-            Juste: false
-        });
+  const lines = text.trim().split(/\r?\n/);
+  aTabTexte = [];
+  lines.forEach(line => {
+    const cols = line.split("|");
+    if (cols.length < 6) return;
+    aTabTexte.push({
+      Acte: cols[0].trim(),
+      Scene: cols[1].trim(),
+      Page: cols[2].trim(),
+      Personnage: cols[3].trim(),
+      Texte: cols[4].trim(),
+      Didascalie: cols[5].trim(),
+      Juste: false
     });
+  });
 }
 
 // Initialisation du menu des personnages
 function initPersonnages() {
-    const persoSelect = document.getElementById("personnageSelect");
-    persoSelect.innerHTML = "";
-    personnages.forEach(p => {
-        const option = document.createElement("option");
-        option.value = p;
-        option.textContent = p;
-        persoSelect.appendChild(option);
-    });
-    persoSelect.value = personnage;
+  const persoSelect = document.getElementById("personnageSelect");
+  persoSelect.innerHTML = "";
+  personnages.forEach(p => {
+    const option = document.createElement("option");
+    option.value = p;
+    option.textContent = p;
+    persoSelect.appendChild(option);
+  });
+  persoSelect.value = personnage;
 }
 
 // Fonctions principales
 function NbDeReplicPersonnage(perso) { return aTabTexte.filter(r => r.Personnage === perso).length; }
 function NbQuestionOK(perso) { return aTabTexte.filter(r => r.Personnage === perso && r.Juste === true).length; }
+
 function updateRepliqueCounter() {
-    const total = NbDeReplicPersonnage(personnage);
-    const ok = NbQuestionOK(personnage);
-    const ligne = aTabTexte[iRow] || {};
-    document.getElementById("repliqueCounter").textContent = 
-        `Réplique n° ${iRow !== null ? iRow+1 : 0} / ${total} | ${ligne.Acte || ''} | ${ligne.Scene || ''} | ${ligne.Page || ''} | Déjà répondues : ${ok}`;
+  const total = NbDeReplicPersonnage(personnage);
+  const ok = NbQuestionOK(personnage);
+  const ligne = aTabTexte[iRow] || {};
+  document.getElementById("repliqueCounter").textContent =
+    `Réplique n° ${iRow !== null ? iRow + 1 : 0} / ${total} | ` +
+    `${ligne.Acte || ''} | ${ligne.Scene || ''} | ${ligne.Page || ''} | ` +
+    `Réponse(s) correcte(s) : ${ok} | Questions posées : ${nbQuestionsPosees}`;
 }
+
 function highlightJuste() {
-    const reponseDiv = document.getElementById("reponse");
-    if(iRow !== null && aTabTexte[iRow].Juste) reponseDiv.classList.add("justHighlight");
-    else reponseDiv.classList.remove("justHighlight");
+  const reponseDiv = document.getElementById("reponse");
+  if (iRow !== null && aTabTexte[iRow].Juste)
+    reponseDiv.classList.add("justHighlight");
+  else
+    reponseDiv.classList.remove("justHighlight");
 }
+
+// Tire au sort une question (AFFICHE seulement — NE COMPTE PAS)
 function TireAuSort() {
-    const indices = [];
-    aTabTexte.forEach((r, idx) => {
-        if (r.Personnage === personnage && r.Juste !== true) indices.push(idx);
-    });
-    if (indices.length === 0) {
-        alert("Toutes les questions ont été posées au moins une fois.");
-        aTabTexte.forEach(r => r.Juste = false);
-        return TireAuSort();
-    }
-    const rnd = Math.floor(Math.random() * indices.length);
-    iRow = indices[rnd];
-    const ligne = aTabTexte[iRow];
-    document.getElementById("didascalie").textContent = ligne.Didascalie || "";
-    const prev = aTabTexte[iRow - 1] || {Personnage:"", Texte:""};
-    document.getElementById("question").textContent = `${prev.Personnage} DIT : ${prev.Texte || ""}`;
-    const reponseDiv = document.getElementById("reponse");
-    reponseDiv.textContent = ligne.Texte || "";
-    reponseDiv.style.display = "none";
-    highlightJuste();
+  const indices = [];
+  aTabTexte.forEach((r, idx) => {
+    if (r.Personnage === personnage && r.Juste !== true) indices.push(idx);
+  });
+  if (indices.length === 0) {
+    alert("Toutes les questions ont été posées au moins une fois. On réinitialise les marqueurs 'Juste'.");
+    aTabTexte.forEach(r => r.Juste = false);
     updateRepliqueCounter();
+    return TireAuSort();
+  }
+  const rnd = Math.floor(Math.random() * indices.length);
+  iRow = indices[rnd];
+  const ligne = aTabTexte[iRow];
+  document.getElementById("didascalie").textContent = ligne.Didascalie || "";
+  const prev = aTabTexte[iRow - 1] || {Personnage:"", Texte:""};
+  document.getElementById("question").textContent = `${prev.Personnage} DIT : ${prev.Texte || ""}`;
+  const reponseDiv = document.getElementById("reponse");
+  reponseDiv.textContent = ligne.Texte || "";
+  reponseDiv.style.display = "none";
+  highlightJuste();
+  updateRepliqueCounter();
 }
-function NouvelleQuestion() { if(aTabTexte.length === 0) return; TireAuSort(); }
 
+// --- Gestion des actions "cliquées"
+function handleNouvelleQuestionClick() {
+  if (aTabTexte.length === 0) return;
+  nbQuestionsPosees++;
+  TireAuSort();
+}
+
+function handleJusteClick() {
+  if (iRow === null) return;
+  aTabTexte[iRow].Juste = true;
+  highlightJuste();
+  nbQuestionsPosees++;
+  TireAuSort();
+}
+
+// Setup des boutons et événements
 function setupButtons() {
-    document.getElementById("voirBtn").addEventListener("click", () => { document.getElementById("reponse").style.display = "block"; });
-    document.getElementById("cacherBtn").addEventListener("click", () => { document.getElementById("reponse").style.display = "none"; });
-    document.getElementById("questionBtn").addEventListener("click", NouvelleQuestion);
-    document.getElementById("justeBtn").addEventListener("click", () => {
-        if (iRow !== null) { aTabTexte[iRow].Juste = true; highlightJuste(); NouvelleQuestion(); }
-    });
-    document.getElementById("resetBtn").addEventListener("click", () => {
-        aTabTexte = JSON.parse(JSON.stringify(aTabTexteBck));
-        highlightJuste();
-        NouvelleQuestion();
-    });
-    document.getElementById("personnageSelect").addEventListener("change", () => {
-        personnage = document.getElementById("personnageSelect").value;
-        NouvelleQuestion();
-    });
+  document.getElementById("voirBtn").addEventListener("click", () => {
+    document.getElementById("reponse").style.display = "block";
+  });
+  document.getElementById("cacherBtn").addEventListener("click", () => {
+    document.getElementById("reponse").style.display = "none";
+  });
+  document.getElementById("questionBtn").addEventListener("click", handleNouvelleQuestionClick);
+  document.getElementById("justeBtn").addEventListener("click", handleJusteClick);
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    // Restaurer les données, remettre compteurs à zéro
+    aTabTexte.forEach(r => r.Juste = false);  // marqueurs "Juste" à zéro
+    nbQuestionsPosees = 0;
+    updateRepliqueCounter();
+    highlightJuste();
+    // NE PAS toucher à iRow ni à l'affichage actuel
+  });
+
+  document.getElementById("personnageSelect").addEventListener("change", () => {
+    personnage = document.getElementById("personnageSelect").value;
+    iRow = null;
+    TireAuSort();
+  });
 }
 
+// Initialisation au chargement
 document.addEventListener("DOMContentLoaded", () => {
-    parseTexte(texteComplet);
-    aTabTexteBck = JSON.parse(JSON.stringify(aTabTexte));
-    initPersonnages();
-    setupButtons();
-    NouvelleQuestion();
+  parseTexte(texteComplet);
+  aTabTexteBck = JSON.parse(JSON.stringify(aTabTexte));
+  initPersonnages();
+  setupButtons();
+  TireAuSort(); // affichage initial sans incrémenter
 });
 </script>
 
